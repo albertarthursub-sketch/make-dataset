@@ -252,7 +252,6 @@ function CaptureStep({
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [streaming, setStreaming] = useState(false);
-  const [quality, setQuality] = useState('none');
   const [uploading, setUploading] = useState(false);
   const TARGET_IMAGES = 5;
 
@@ -284,19 +283,40 @@ function CaptureStep({
     }
   };
 
-  const captureImage = async () => {
-    if (!canvasRef.current || !videoRef.current) return;
+  const captureImage = () => {
+    if (!canvasRef.current || !videoRef.current) {
+      setError('❌ Camera or canvas reference not available');
+      return;
+    }
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    canvas.width = videoRef.current.videoWidth;
-    canvas.height = videoRef.current.videoHeight;
-    ctx.drawImage(videoRef.current, 0, 0);
-
-    const imageData = canvas.toDataURL('image/jpeg', 0.95);
-    setImages([...images, { data: imageData, timestamp: Date.now() }]);
-    setImageCount(images.length + 1);
-    setMessage(`✅ Captured image ${images.length + 1}/${TARGET_IMAGES}`);
+    try {
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        setError('❌ Canvas context not available');
+        return;
+      }
+      
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+      
+      if (canvas.width === 0 || canvas.height === 0) {
+        setError('❌ Video not loaded yet. Try again in a moment.');
+        return;
+      }
+      
+      ctx.drawImage(videoRef.current, 0, 0);
+      const imageData = canvas.toDataURL('image/jpeg', 0.95);
+      
+      const newImages = [...images, { data: imageData, timestamp: Date.now() }];
+      setImages(newImages);
+      setImageCount(newImages.length);
+      setMessage(`✅ Captured image ${newImages.length}/${TARGET_IMAGES}`);
+    } catch (err) {
+      setError(`❌ Failed to capture image: ${err.message}`);
+      console.error('Capture error:', err);
+    }
   };
 
   const removeImage = (index) => {
@@ -386,15 +406,20 @@ function CaptureStep({
 
           <div className={styles.capture_info}>
             <p>📸 Captured: <strong>{imageCount}/{TARGET_IMAGES}</strong></p>
+            <p>{streaming ? '✅ Camera Ready' : '⏳ Initializing camera...'}</p>
             <p>💡 Tips: Good lighting, centered face, different angles</p>
           </div>
 
           <button
             onClick={captureImage}
-            disabled={!streaming || imageCount >= TARGET_IMAGES}
+            disabled={!streaming || imageCount >= TARGET_IMAGES || uploading}
             className={styles.btn_capture}
+            style={{ 
+              opacity: !streaming ? 0.5 : 1,
+              cursor: !streaming ? 'not-allowed' : 'pointer'
+            }}
           >
-            {imageCount >= TARGET_IMAGES ? '✅ Complete' : '📸 Capture'}
+            {!streaming ? '⏳ Camera loading...' : imageCount >= TARGET_IMAGES ? '✅ Ready to Upload' : '📸 Capture'}
           </button>
         </div>
 
