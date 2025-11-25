@@ -270,15 +270,8 @@ function InfoStep({
         )}
 
         <div className={styles.info_box}>
-          <h3>ℹ️ How it works</h3>
-          <ol>
-            <li>Enter your Binusian ID</li>
-            <li>Your name and class will auto-load from the system</li>
-            <li>Allow camera access when prompted</li>
-            <li>Capture 3-5 high-quality face images</li>
-            <li>Images are uploaded to secure storage</li>
-            <li>You're ready for the attendance system!</li>
-          </ol>
+          <h3>⚙️ System Boot Sequence</h3>
+          <SystemBootLoader />
         </div>
       </div>
     </div>
@@ -608,6 +601,54 @@ function UploadStep({ studentName, imageCount, setStep }) {
           ↻ Capture Another Student
         </button>
       </div>
+    </div>
+  );
+}
+
+// ==========================================
+// System Boot Loader - Techy Sequence
+// ==========================================
+function SystemBootLoader() {
+  const [bootSequence, setBootSequence] = useState([]);
+
+  useEffect(() => {
+    const bootSteps = [
+      { label: 'Initializing facial recognition engine...', delay: 300 },
+      { label: 'Loading biometric database [████████░░ 85%]', delay: 800 },
+      { label: 'Verifying encryption protocols... [256-bit AES]', delay: 600 },
+      { label: 'Authenticating user credentials...', delay: 500 },
+      { label: 'Mounting secure storage partition...', delay: 700 },
+      { label: 'Calibrating camera sensor array...', delay: 400 },
+      { label: 'Synchronizing with attendance server...', delay: 600 },
+      { label: 'System ready [✓ ALL SYSTEMS GO]', delay: 300 }
+    ];
+
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      if (currentIndex < bootSteps.length) {
+        setBootSequence(prev => [...prev, bootSteps[currentIndex]]);
+        currentIndex++;
+      } else {
+        currentIndex = 0;
+        setBootSequence([]);
+      }
+    }, bootSteps[currentIndex]?.delay || 500);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className={styles.boot_sequence}>
+      {bootSequence.length === 0 ? (
+        <div className={styles.boot_line}>$ <span className={styles.boot_cursor}>█</span></div>
+      ) : (
+        bootSequence.map((step, idx) => (
+          <div key={idx} className={styles.boot_line}>
+            $ {step.label}
+            {idx === bootSequence.length - 1 && <span className={styles.boot_cursor}>█</span>}
+          </div>
+        ))
+      )}
     </div>
   );
 }
