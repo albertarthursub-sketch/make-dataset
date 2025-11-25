@@ -39,7 +39,9 @@ export default function Home() {
 
       if (!lookupResponse.ok) {
         const errorData = await lookupResponse.json();
-        setError(`❌ Student not found: ${errorData.message || errorData.error}`);
+        const errorMsg = errorData.error || errorData.message || 'Unknown error';
+        const details = errorData.details ? ` - ${errorData.details}` : '';
+        setError(`❌ ${errorMsg}${details}`);
         setLoading(false);
         return;
       }

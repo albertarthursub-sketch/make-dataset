@@ -74,18 +74,27 @@ export default async function handler(req, res) {
     // Step 3: Parse response
     const result = studentResponse.data;
     
+    console.log('Raw API response:', JSON.stringify(result, null, 2));
+    
     if (result?.resultCode !== 200) {
       console.error('API returned non-200 result:', result);
       return res.status(404).json({ 
         error: 'Student not found',
-        resultCode: result?.resultCode 
+        resultCode: result?.resultCode,
+        details: result?.errorMessage || 'Unknown error'
       });
     }
 
-    const studentData = result.studentDataResponse || result.data;
+    const studentData = result.studentDataResponse || result.data || result;
     
-    if (!studentData) {
-      return res.status(404).json({ error: 'No student data in response' });
+    console.log('Parsed student data:', JSON.stringify(studentData, null, 2));
+    
+    // Check if we got valid student data
+    if (!studentData || !studentData.studentName) {
+      return res.status(404).json({ 
+        error: `Student with ID '${studentId}' not found in Binus system`,
+        details: 'The API returned no student data for this ID'
+      });
     }
 
     // Step 4: Extract fields (same as make_dataset.py logic)
