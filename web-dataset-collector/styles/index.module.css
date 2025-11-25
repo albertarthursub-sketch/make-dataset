@@ -359,6 +359,53 @@
   margin-bottom: 8px;
 }
 
+/* System Boot Sequence */
+.boot_sequence {
+  background: rgba(0, 10, 20, 0.9);
+  padding: 15px;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+  color: #00ff88;
+  line-height: 1.8;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.1);
+}
+
+.boot_line {
+  color: #00ff88;
+  margin-bottom: 4px;
+  animation: typewriter 0.3s steps(40, end);
+}
+
+@keyframes typewriter {
+  from {
+    width: 0;
+    opacity: 0;
+  }
+  to {
+    width: 100%;
+    opacity: 1;
+  }
+}
+
+.boot_cursor {
+  display: inline-block;
+  animation: blink 1s infinite;
+  margin-left: 4px;
+}
+
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
 /* Capture Container */
 .capture_container {
   margin: 20px 0;
