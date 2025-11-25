@@ -44,7 +44,7 @@ except ImportError:
 CONFIG = {
     # Recognition settings - optimized for accuracy and security
     "tolerance": 0.4,           # Stricter tolerance for better security
-    "frame_resize": 0.6,        # Higher quality for better accuracy
+    "frame_resize": 0.7 ,        # Higher quality for better accuracy
     "skip_frames": 1,           # Process more frames for better tracking
     "enhanced_facial_recognition": True,
     "use_landmark_embeddings": True,

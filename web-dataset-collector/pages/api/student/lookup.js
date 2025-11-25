@@ -1,0 +1,129 @@
+import axios from 'axios';
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  try {
+    const { studentId } = req.body;
+
+    if (!studentId) {
+      return res.status(400).json({ error: 'studentId is required' });
+    }
+
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) {
+      console.error('API_KEY not configured');
+      return res.status(500).json({ error: 'Server configuration error' });
+    }
+
+    // Step 1: Get auth token
+    let token;
+    try {
+      const tokenResponse = await axios.get(
+        'http://binusian.ws/binusschool/auth/token',
+        {
+          headers: {
+            'Authorization': `Basic ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+
+      // Handle different token response formats
+      token = tokenResponse.data?.data?.token || 
+              tokenResponse.data?.token || 
+              tokenResponse.data?.access_token;
+      
+      if (!token) {
+        console.error('No token in response:', JSON.stringify(tokenResponse.data, null, 2));
+        return res.status(500).json({ error: 'Failed to get authentication token' });
+      }
+    } catch (error) {
+      console.error('Token fetch error:', error.message);
+      return res.status(500).json({ 
+        error: 'Failed to authenticate with Binus API',
+        details: error.message 
+      });
+    }
+
+    // Step 2: Call C2 endpoint to get student data
+    let studentResponse;
+    try {
+      studentResponse = await axios.post(
+        'http://binusian.ws/binusschool/bss-student-enrollment',
+        { IdStudent: String(studentId) },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000
+        }
+      );
+    } catch (error) {
+      console.error('Student lookup error:', error.message);
+      return res.status(500).json({ 
+        error: 'Failed to lookup student',
+        details: error.message 
+      });
+    }
+
+    // Step 3: Parse response
+    const result = studentResponse.data;
+    
+    if (result?.resultCode !== 200) {
+      console.error('API returned non-200 result:', result);
+      return res.status(404).json({ 
+        error: 'Student not found',
+        resultCode: result?.resultCode 
+      });
+    }
+
+    const studentData = result.studentDataResponse || result.data;
+    
+    if (!studentData) {
+      return res.status(404).json({ error: 'No student data in response' });
+    }
+
+    // Step 4: Extract fields (same as make_dataset.py logic)
+    const studentName = studentData.studentName || 
+                       studentData.name || 
+                       studentData.fullName || 
+                       'Unknown';
+    
+    const homeroom = studentData.homeroom || 
+                    studentData.class || 
+                    studentData.className || 
+                    'Unknown';
+
+    const gradeCode = studentData.gradeCode || 
+                     studentData.grade || 
+                     'Unknown';
+
+    const gradeName = studentData.gradeName || 
+                     studentData.gradeName || 
+                     'Unknown';
+
+    console.log('✓ Student lookup successful:', { studentId, studentName, homeroom });
+
+    return res.status(200).json({
+      success: true,
+      id: studentId,
+      name: studentName,
+      homeroom: homeroom,
+      gradeCode: gradeCode,
+      gradeName: gradeName,
+      raw: studentData
+    });
+
+  } catch (error) {
+    console.error('Unexpected error in student lookup:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: error.message 
+    });
+  }
+}

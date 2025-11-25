@@ -1,0 +1,199 @@
+╔══════════════════════════════════════════════════════════════════════╗
+║              API INTEGRATION FIXED - STUDENT LOOKUP (C2)             ║
+║                    Web Collector Now Uses Real API                   ║
+╚══════════════════════════════════════════════════════════════════════╝
+
+📊 BEFORE vs AFTER
+══════════════════════════════════════════════════════════════════════
+
+BEFORE (Placeholder):
+┌─────────────────────────┐
+│ Student enters: 2401234 │
+│        ↓                │
+│ Returns: "Student Name" │ ← FAKE
+│ Returns: "Class Name"   │ ← FAKE
+│ ❌ Doesn't match real   │
+│    system data          │
+└─────────────────────────┘
+
+AFTER (Real API):
+┌─────────────────────────────────────────┐
+│ Student enters: 2401234567              │
+│        ↓                                 │
+│ Backend calls Binus API:                │
+│ 1. Get token (using API_KEY)            │
+│ 2. Call C2 endpoint                     │
+│ 3. Extract: studentName, homeroom       │
+│        ↓                                 │
+│ Returns: "John Doe"  ✅ From system     │
+│ Returns: "1A"        ✅ From system     │
+│ ✅ Matches real data                    │
+└─────────────────────────────────────────┘
+
+══════════════════════════════════════════════════════════════════════
+
+🔄 FLOW DIAGRAM
+══════════════════════════════════════════════════════════════════════
+
+STUDENT                WEB APP             VERCEL BACKEND    BINUS API
+   │                     │                      │                 │
+   │ Enter ID            │                      │                 │
+   ├──────────────────>  │                      │                 │
+   │                     │ POST /api/lookup     │                 │
+   │                     │ {studentId}          │                 │
+   │                     ├─────────────────>   │                 │
+   │                     │                     │ Get Token       │
+   │                     │                     ├────────────────>│
+   │                     │                     │<────────────────┤
+   │                     │                     │                 │
+   │                     │                     │ POST C2         │
+   │                     │                     ├────────────────>│
+   │                     │                     │ {IdStudent}     │
+   │                     │                     │                 │
+   │                     │                     │<────────────────┤
+   │                     │<─────────────────   │ {name, class}   │
+   │                     │ {success, name}     │                 │
+   │                     │                      │                 │
+   │<─ Auto-filled name──│                      │                 │
+   │<─ Auto-filled class │                      │                 │
+   │                     │                      │                 │
+
+══════════════════════════════════════════════════════════════════════
+
+📝 IMPLEMENTATION DETAILS
+══════════════════════════════════════════════════════════════════════
+
+Backend (api/index.js):
+
+  1. GET http://binusian.ws/binusschool/auth/token
+     Header: Authorization: Basic {API_KEY}
+     ↓
+     Get: token
+
+  2. POST http://binusian.ws/binusschool/bss-student-enrollment
+     Header: Authorization: Bearer {token}
+     Body: { IdStudent: "2401234567" }
+     ↓
+     Get: { studentName: "John Doe", homeroom: "1A", ... }
+
+  3. Extract fields:
+     - name = studentName
+     - homeroom = homeroom or class
+     - gradeCode = gradeCode
+     - gradeName = gradeName
+
+  4. Return JSON with auto-fill data
+
+Frontend (pages/index.js):
+
+  1. Show form with ID field only
+  2. User enters ID
+  3. Click "Lookup"
+  4. Frontend calls /api/student/lookup
+  5. On success:
+     - setStudentName(data.name)
+     - setClassName(data.homeroom)
+     - Disable ID field
+     - Show "Found: John Doe | Class: 1A"
+  6. User clicks "Continue to Capture"
+
+══════════════════════════════════════════════════════════════════════
+
+🔀 SAME AS make_dataset.py
+══════════════════════════════════════════════════════════════════════
+
+make_dataset.py (Python):
+  record = api_integrate.get_student_by_id_c2(studentid)
+  student_name = record.get('studentName')
+  class_name = record.get('homeroom')
+
+web-dataset-collector (JavaScript):
+  const studentResponse = await axios.post(...)  // C2 endpoint
+  const studentName = studentData.studentName
+  const homeroom = studentData.homeroom
+
+✅ EXACT SAME LOGIC & FIELD MAPPING
+
+══════════════════════════════════════════════════════════════════════
+
+⚙️ CONFIGURATION NEEDED
+══════════════════════════════════════════════════════════════════════
+
+In: web-dataset-collector/.env.local
+
+  API_KEY=YOUR_API_KEY_HERE
+  (Copy from parent .env - same value!)
+
+  FIREBASE_PROJECT_ID=...
+  FIREBASE_PRIVATE_KEY=...
+  FIREBASE_CLIENT_EMAIL=...
+  FIREBASE_STORAGE_BUCKET=...
+
+That's it! Everything else is automatic.
+
+══════════════════════════════════════════════════════════════════════
+
+✅ VERIFICATION CHECKLIST
+══════════════════════════════════════════════════════════════════════
+
+□ API_KEY is in .env.local
+□ Firebase credentials are set
+□ Deploy to Vercel
+□ Go to your URL
+□ Enter student ID from your system
+□ Name auto-fills ← This proves API works!
+□ Class auto-fills ← This proves API works!
+□ Can proceed to camera capture
+□ Images upload to Firebase
+
+If Step 6-7 pass → API integration is working! ✅
+
+══════════════════════════════════════════════════════════════════════
+
+🎯 KEY BENEFITS
+══════════════════════════════════════════════════════════════════════
+
+✅ Real Data: Uses actual Binus API (not hardcoded)
+✅ Auto-Fill: Students don't manually enter name/class
+✅ Consistency: Uses exact same field mapping as main.py
+✅ Validation: Checks if student ID exists
+✅ Organized: Images saved with correct class/name
+✅ Error Messages: Clear feedback for invalid IDs
+
+══════════════════════════════════════════════════════════════════════
+
+📊 SUCCESS INDICATORS
+══════════════════════════════════════════════════════════════════════
+
+✅ "✅ Found: John Doe | Class: 1A"
+   → API lookup succeeded!
+
+✅ Name field shows: "John Doe" (disabled)
+   → Auto-fill worked!
+
+✅ Class field shows: "1A" (disabled)
+   → Auto-fill worked!
+
+✅ Images stored as: face_dataset/1A/John Doe/
+   → Metadata saved correctly!
+
+If all above show: System is working perfectly! 🎉
+
+══════════════════════════════════════════════════════════════════════
+
+🚀 READY TO DEPLOY
+══════════════════════════════════════════════════════════════════════
+
+Everything is configured and ready!
+
+Next steps:
+1. Set API_KEY in .env.local
+2. Deploy to Vercel: vercel
+3. Test with student ID
+4. Watch auto-fill work
+5. Share URL with team
+
+══════════════════════════════════════════════════════════════════════
+
+For more details: See API_LOOKUP.md
+
