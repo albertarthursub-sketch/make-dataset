@@ -103,6 +103,7 @@ export default function Home() {
           onSubmit={handleInfoSubmit}
           error={error}
           setError={setError}
+          onContinueToCapture={() => setStep('capture')}
         />
       )}
 
@@ -145,7 +146,8 @@ function InfoStep({
   loading,
   onSubmit,
   error,
-  setError
+  setError,
+  onContinueToCapture
 }) {
   return (
     <div className={styles.step}>
@@ -153,69 +155,75 @@ function InfoStep({
         <h2>📝 Student Information</h2>
         <p className={styles.subtitle}>Enter your Binusian ID to auto-load your details</p>
 
-        <form onSubmit={(e) => {
-          e.preventDefault();
-          onSubmit(e);
-          // After successful lookup, parent will set step to 'capture'
-        }}>
-          <div className={styles.form_group}>
-            <label>Binusian ID * (Required)</label>
-            <input
-              type="text"
-              value={studentId}
-              onChange={(e) => {
-                setStudentId(e.target.value);
-              }}
-              placeholder="e.g., 2401234567"
-              required
-              disabled={studentName ? true : loading}
-            />
-            <small>Your unique Binus student ID to lookup your information</small>
-          </div>
+        {!studentName ? (
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            onSubmit(e);
+          }}>
+            <div className={styles.form_group}>
+              <label>Binusian ID * (Required)</label>
+              <input
+                type="text"
+                value={studentId}
+                onChange={(e) => {
+                  setStudentId(e.target.value);
+                }}
+                placeholder="e.g., 2401234567"
+                required
+                disabled={loading}
+              />
+              <small>Your unique Binus student ID to lookup your information</small>
+            </div>
 
-          {studentName && (
-            <>
-              <div className={styles.form_group}>
-                <label>Full Name (Auto-filled)</label>
-                <input
-                  type="text"
-                  value={studentName}
-                  disabled
-                  style={{ backgroundColor: '#f0f0f0' }}
-                />
-                <small>Automatically loaded from system</small>
-              </div>
+            <button type="submit" disabled={loading || !studentId} className={styles.btn_primary}>
+              {loading ? '⏳ Looking up...' : '🔍 Lookup Student Info'}
+            </button>
+          </form>
+        ) : (
+          <>
+            <div className={styles.form_group}>
+              <label>Full Name (Auto-filled)</label>
+              <input
+                type="text"
+                value={studentName}
+                disabled
+                style={{ backgroundColor: '#f0f0f0' }}
+              />
+              <small>Automatically loaded from system</small>
+            </div>
 
-              <div className={styles.form_group}>
-                <label>Class / Homeroom (Auto-filled)</label>
-                <input
-                  type="text"
-                  value={className}
-                  disabled
-                  style={{ backgroundColor: '#f0f0f0' }}
-                />
-                <small>Your homeroom class</small>
-              </div>
-            </>
-          )}
+            <div className={styles.form_group}>
+              <label>Class / Homeroom (Auto-filled)</label>
+              <input
+                type="text"
+                value={className}
+                disabled
+                style={{ backgroundColor: '#f0f0f0' }}
+              />
+              <small>Your homeroom class</small>
+            </div>
 
-          <button type="submit" disabled={loading || !studentId} className={styles.btn_primary}>
-            {loading ? '⏳ Looking up...' : (studentName ? '➜ Continue to Capture' : '🔍 Lookup Student Info')}
-          </button>
-        </form>
-
-        {studentName && (
-          <button 
-            onClick={() => {
-              setStudentId('');
-              setStudentName('');
-              setClassName('');
-            }}
-            className={styles.btn_secondary}
-            style={{ marginTop: '10px' }}
-          >
-            ← Enter Different Student
-          </button>
+            <div className={styles.button_group}>
+              <button 
+                onClick={() => {
+                  setStudentId('');
+                  setStudentName('');
+                  setClassName('');
+                }}
+                className={styles.btn_secondary}
+              >
+                ← Enter Different Student
+              </button>
+              <button 
+                onClick={() => {
+                  onContinueToCapture();
+                }}
+                className={styles.btn_primary}
+              >
+                ➜ Continue to Capture
+              </button>
+            </div>
+          </>
         )}
 
         <div className={styles.info_box}>
@@ -262,18 +270,64 @@ function CaptureStep({
 
   const startCamera = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { width: 1280, height: 720, facingMode: 'user' }
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current.play();
-          setStreaming(true);
-        };
+      // Try with explicit constraints first
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720, facingMode: 'user' }
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+            setStreaming(true);
+            setMessage('✅ Camera connected successfully');
+          };
+        }
+      } catch (permissionErr) {
+        // If permission denied or constraints failed, try with minimal constraints
+        console.log('Trying with minimal constraints...', permissionErr.message);
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play();
+            setStreaming(true);
+            setMessage('✅ Camera connected successfully');
+          };
+        }
       }
     } catch (err) {
-      setError('❌ Camera access denied. Please enable camera permissions.');
+      console.error('Camera error:', err.message);
+      
+      // Provide more specific error messages
+      if (err.name === 'NotAllowedError') {
+        setError('❌ Camera permission denied. Please enable camera access in your browser settings.');
+      } else if (err.name === 'NotFoundError') {
+        setError('❌ No camera found. Please check your camera connection.');
+      } else if (err.name === 'NotReadableError') {
+        setError('❌ Camera is in use by another application. Please close it and try again.');
+      } else if (err.name === 'OverconstrainedError') {
+        // Try once more with no constraints
+        try {
+          console.log('Constraints too strict, trying basic access...');
+          const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+            videoRef.current.onloadedmetadata = () => {
+              videoRef.current.play();
+              setStreaming(true);
+              setMessage('✅ Camera connected (basic mode)');
+            };
+          }
+        } catch (finalErr) {
+          setError(`❌ Camera access error: ${finalErr.message}`);
+        }
+      } else {
+        setError(`❌ Camera error: ${err.message}`);
+      }
     }
   };
 
@@ -401,6 +455,7 @@ function CaptureStep({
             className={styles.video}
             playsInline
             autoPlay
+            muted
           />
           <canvas ref={canvasRef} style={{ display: 'none' }} />
 
@@ -408,6 +463,20 @@ function CaptureStep({
             <p>📸 Captured: <strong>{imageCount}/{TARGET_IMAGES}</strong></p>
             <p>{streaming ? '✅ Camera Ready' : '⏳ Initializing camera...'}</p>
             <p>💡 Tips: Good lighting, centered face, different angles</p>
+            {!streaming && (
+              <button
+                onClick={() => {
+                  setStreaming(false);
+                  setError('');
+                  setMessage('');
+                  startCamera();
+                }}
+                className={styles.btn_secondary}
+                style={{ marginTop: '10px', width: '100%' }}
+              >
+                🔄 Retry Camera
+              </button>
+            )}
           </div>
 
           <button
