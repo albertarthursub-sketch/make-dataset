@@ -1,0 +1,30 @@
+{
+  "Cedric Carrington Cahaya": {
+    "timestamp": "2025-11-21 14:34:57",
+    "status": "Late",
+    "late": true,
+    "confidence": 0.66,
+    "quality_score": 0.754,
+    "security_score": 0.69,
+    "ip_address": "localhost",
+    "system_info": {
+      "gpu_used": true,
+      "detection_method": "ensemble"
+    },
+    "class": "6B"
+  },
+  "Anderson Ian Roesmin": {
+    "timestamp": "2025-11-21 14:34:56",
+    "status": "Late",
+    "late": true,
+    "confidence": 0.633,
+    "quality_score": 0.754,
+    "security_score": 0.583,
+    "ip_address": "localhost",
+    "system_info": {
+      "gpu_used": true,
+      "detection_method": "ensemble"
+    },
+    "class": "6B"
+  }
+}
