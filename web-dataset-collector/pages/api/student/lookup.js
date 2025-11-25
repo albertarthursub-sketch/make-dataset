@@ -28,7 +28,7 @@ export default async function handler(req, res) {
             'Authorization': `Basic ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 30000
         }
       );
 
@@ -60,11 +60,20 @@ export default async function handler(req, res) {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          timeout: 10000
+          timeout: 30000
         }
       );
     } catch (error) {
       console.error('Student lookup error:', error.message);
+      
+      // Handle timeout errors specifically
+      if (error.code === 'ECONNABORTED' || error.message.includes('timeout')) {
+        return res.status(504).json({ 
+          error: 'API request timeout - Binus system is slow to respond',
+          details: 'Please try again in a moment'
+        });
+      }
+      
       return res.status(500).json({ 
         error: 'Failed to lookup student',
         details: error.message 
