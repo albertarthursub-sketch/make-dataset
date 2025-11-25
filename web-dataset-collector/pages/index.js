@@ -273,7 +273,11 @@ function CaptureStep({
       // Try with explicit constraints first
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720, facingMode: 'user' }
+          video: { 
+            width: { ideal: 1280 }, 
+            height: { ideal: 720 }, 
+            facingMode: 'user' 
+          }
         });
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
