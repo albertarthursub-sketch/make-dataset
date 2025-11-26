@@ -3,18 +3,16 @@
    ============================================ */
 
 .container {
-  max-width: 900px;
-  margin: 0 auto;
-  padding: 20px;
-  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1629 100%);
+  display: flex;
   min-height: 100vh;
+  background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 50%, #0f1629 100%);
   font-family: 'Courier New', 'JetBrains Mono', monospace;
   color: #00ff88;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
-/* Animated background matrix effect */
+/* Animated Matrix Background - Enhanced */
 .container::before {
   content: '';
   position: fixed;
@@ -23,22 +21,85 @@
   width: 100%;
   height: 100%;
   background-image: 
-    linear-gradient(0deg, transparent 24%, rgba(0, 255, 136, 0.05) 25%, rgba(0, 255, 136, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 136, 0.05) 75%, rgba(0, 255, 136, 0.05) 76%, transparent 77%, transparent),
-    linear-gradient(90deg, transparent 24%, rgba(0, 255, 136, 0.05) 25%, rgba(0, 255, 136, 0.05) 26%, transparent 27%, transparent 74%, rgba(0, 255, 136, 0.05) 75%, rgba(0, 255, 136, 0.05) 76%, transparent 77%, transparent);
-  background-size: 50px 50px;
+    linear-gradient(0deg, transparent 24%, rgba(0, 255, 136, 0.08) 25%, rgba(0, 255, 136, 0.08) 26%, transparent 27%, transparent 74%, rgba(0, 255, 136, 0.08) 75%, rgba(0, 255, 136, 0.08) 76%, transparent 77%, transparent),
+    linear-gradient(90deg, transparent 24%, rgba(0, 255, 136, 0.08) 25%, rgba(0, 255, 136, 0.08) 26%, transparent 27%, transparent 74%, rgba(0, 255, 136, 0.08) 75%, rgba(0, 255, 136, 0.08) 76%, transparent 77%, transparent);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+  animation: matrix-flow 20s linear infinite;
+}
+
+@keyframes matrix-flow {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(40px); }
+}
+
+.container::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 50%, rgba(0, 255, 136, 0.05), transparent 70%);
   pointer-events: none;
   z-index: 0;
 }
 
-.container > * {
+/* Main Layout Structure */
+.main_layout {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
   position: relative;
   z-index: 1;
 }
 
+/* Boot Sidebar Panel - Fixed */
+.boot_sidebar {
+  width: 280px;
+  background: linear-gradient(180deg, rgba(10, 14, 39, 0.95) 0%, rgba(26, 31, 58, 0.95) 100%);
+  border-right: 2px solid rgba(0, 255, 136, 0.3);
+  padding: 20px;
+  box-shadow: inset -2px 0 20px rgba(0, 255, 136, 0.1);
+  position: sticky;
+  top: 0;
+  max-height: 100vh;
+  overflow-y: auto;
+}
+
+.boot_panel {
+  background: rgba(0, 20, 40, 0.7);
+  border: 1px solid rgba(0, 255, 136, 0.4);
+  border-radius: 6px;
+  padding: 15px;
+  box-shadow: 0 0 15px rgba(0, 255, 136, 0.1);
+}
+
+.boot_panel h3 {
+  margin: 0 0 15px;
+  font-size: 0.9em;
+  letter-spacing: 2px;
+  color: #00ff88;
+  text-transform: uppercase;
+  text-shadow: 0 0 10px rgba(0, 255, 136, 0.4);
+  border-bottom: 1px solid rgba(0, 255, 136, 0.2);
+  padding-bottom: 10px;
+}
+
+/* Main Content Area */
+.main_content {
+  flex: 1;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  width: 100%;
+}
+
 .header {
   text-align: center;
-  margin-bottom: 40px;
-  padding: 40px 20px 20px;
+  margin-bottom: 30px;
+  padding: 30px 20px 20px;
   border-bottom: 2px solid rgba(0, 255, 136, 0.3);
   position: relative;
 }
@@ -54,12 +115,13 @@
 }
 
 .header h1 {
-  font-size: 2.5em;
+  font-size: 2.2em;
   margin: 0 0 10px;
   text-shadow: 0 0 10px rgba(0, 255, 136, 0.5), 0 0 20px rgba(0, 255, 136, 0.3);
-  letter-spacing: 2px;
+  letter-spacing: 3px;
   color: #00ff88;
   animation: glow 3s ease-in-out infinite;
+  font-weight: bold;
 }
 
 @keyframes glow {
@@ -331,54 +393,45 @@
   cursor: not-allowed;
 }
 
-/* Info Box */
+/* Info Box - Hidden since boot is in sidebar */
 .info_box {
-  background: rgba(0, 255, 136, 0.05);
-  padding: 12px;
-  border-radius: 8px;
-  margin-top: 15px;
-  border-left: 4px solid #00ff88;
-  border: 1px solid rgba(0, 255, 136, 0.2);
-}
-
-.info_box h3 {
-  margin-top: 0;
-  margin-bottom: 8px;
-  color: #00ff88;
-  font-size: 0.95em;
-  text-shadow: 0 0 5px rgba(0, 255, 136, 0.2);
-}
-
-.info_box ol {
-  margin: 10px 0;
-  padding-left: 20px;
-  color: #00ccff;
-  line-height: 1.6;
-}
-
-.info_box li {
-  margin-bottom: 8px;
+  display: none;
 }
 
 /* System Boot Sequence */
 .boot_sequence {
   background: rgba(0, 10, 20, 0.9);
-  padding: 10px;
+  padding: 12px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 0.75em;
   color: #00ff88;
-  line-height: 1.4;
-  max-height: 120px;
+  line-height: 1.6;
+  max-height: 400px;
   overflow-y: auto;
   border: 1px solid rgba(0, 255, 136, 0.3);
   box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.1);
 }
 
+.boot_sequence::-webkit-scrollbar {
+  width: 6px;
+}
+
+.boot_sequence::-webkit-scrollbar-track {
+  background: rgba(0, 255, 136, 0.05);
+}
+
+.boot_sequence::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 136, 0.3);
+  border-radius: 3px;
+}
+
 .boot_line {
   color: #00ff88;
-  margin-bottom: 2px;
-  animation: typewriter 0.3s steps(40, end);
+  margin-bottom: 4px;
+  animation: typewriter 0.2s steps(30, end);
+  font-weight: 500;
+  letter-spacing: 0.5px;
 }
 
 @keyframes typewriter {
