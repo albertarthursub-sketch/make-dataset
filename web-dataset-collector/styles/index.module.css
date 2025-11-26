@@ -120,7 +120,7 @@
 .card {
   background: linear-gradient(135deg, rgba(10, 14, 39, 0.95) 0%, rgba(20, 30, 50, 0.95) 100%);
   border-radius: 8px;
-  padding: 40px;
+  padding: 25px;
   border: 2px solid rgba(0, 255, 136, 0.3);
   box-shadow: 0 0 30px rgba(0, 255, 136, 0.2), inset 0 0 20px rgba(0, 255, 136, 0.05);
   width: 100%;
@@ -150,29 +150,29 @@
 .card h2 {
   color: #00ff88;
   margin-top: 0;
-  font-size: 1.8em;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+  font-size: 1.5em;
   text-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
 }
 
 .subtitle {
   color: #00ccff;
-  font-size: 0.95em;
-  margin-bottom: 25px;
+  font-size: 0.85em;
+  margin-bottom: 15px;
   opacity: 0.8;
 }
 
 /* Forms */
 .form_group {
-  margin-bottom: 20px;
+  margin-bottom: 12px;
 }
 
 .form_group label {
   display: block;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 5px;
   color: #00ff88;
-  font-size: 0.95em;
+  font-size: 0.85em;
   text-shadow: 0 0 5px rgba(0, 255, 136, 0.2);
 }
 
@@ -334,17 +334,18 @@
 /* Info Box */
 .info_box {
   background: rgba(0, 255, 136, 0.05);
-  padding: 20px;
+  padding: 12px;
   border-radius: 8px;
-  margin-top: 25px;
+  margin-top: 15px;
   border-left: 4px solid #00ff88;
   border: 1px solid rgba(0, 255, 136, 0.2);
 }
 
 .info_box h3 {
   margin-top: 0;
+  margin-bottom: 8px;
   color: #00ff88;
-  font-size: 1.1em;
+  font-size: 0.95em;
   text-shadow: 0 0 5px rgba(0, 255, 136, 0.2);
 }
 
@@ -362,13 +363,13 @@
 /* System Boot Sequence */
 .boot_sequence {
   background: rgba(0, 10, 20, 0.9);
-  padding: 15px;
+  padding: 10px;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
-  font-size: 0.9em;
+  font-size: 0.75em;
   color: #00ff88;
-  line-height: 1.8;
-  max-height: 200px;
+  line-height: 1.4;
+  max-height: 120px;
   overflow-y: auto;
   border: 1px solid rgba(0, 255, 136, 0.3);
   box-shadow: inset 0 0 10px rgba(0, 255, 136, 0.1);
@@ -376,7 +377,7 @@
 
 .boot_line {
   color: #00ff88;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   animation: typewriter 0.3s steps(40, end);
 }
 

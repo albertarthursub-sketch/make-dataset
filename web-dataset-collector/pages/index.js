@@ -613,28 +613,36 @@ function SystemBootLoader() {
 
   useEffect(() => {
     const bootSteps = [
-      { label: 'Initializing facial recognition engine...', delay: 300 },
-      { label: 'Loading biometric database [████████░░ 85%]', delay: 800 },
-      { label: 'Verifying encryption protocols... [256-bit AES]', delay: 600 },
-      { label: 'Authenticating user credentials...', delay: 500 },
-      { label: 'Mounting secure storage partition...', delay: 700 },
-      { label: 'Calibrating camera sensor array...', delay: 400 },
-      { label: 'Synchronizing with attendance server...', delay: 600 },
-      { label: 'System ready [✓ ALL SYSTEMS GO]', delay: 300 }
+      { label: 'Initializing facial recognition...', delay: 200 },
+      { label: 'Loading biometric database [85%]', delay: 200 },
+      { label: 'Verifying encryption [256-bit AES]', delay: 200 },
+      { label: 'Authenticating credentials...', delay: 200 },
+      { label: 'Calibrating camera sensor...', delay: 200 },
+      { label: '✓ System ready [ALL SYSTEMS GO]', delay: 200 }
     ];
 
     let currentIndex = 0;
-    const interval = setInterval(() => {
+    const bootCycle = () => {
       if (currentIndex < bootSteps.length) {
-        setBootSequence(prev => [...prev, bootSteps[currentIndex]]);
+        const step = bootSteps[currentIndex];
+        setBootSequence(prev => [...prev, step]);
         currentIndex++;
+        setTimeout(bootCycle, step.delay);
       } else {
-        currentIndex = 0;
-        setBootSequence([]);
+        // Reset after showing all steps
+        setTimeout(() => {
+          currentIndex = 0;
+          setBootSequence([]);
+          setTimeout(bootCycle, 500);
+        }, 1000);
       }
-    }, bootSteps[currentIndex]?.delay || 500);
+    };
 
-    return () => clearInterval(interval);
+    bootCycle();
+    
+    return () => {
+      // Cleanup handled by setTimeout mechanism
+    };
   }, []);
 
   return (
