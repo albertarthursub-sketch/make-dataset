@@ -105,6 +105,36 @@ export default function AttendanceRecords() {
     );
   };
 
+  const getAccuracyBadge = (accuracy) => {
+    if (!accuracy) return <span className={styles.accuracy_unavailable}>N/A</span>;
+    
+    const percent = accuracy * 100;
+    let color, label;
+    
+    if (percent >= 95) {
+      color = '#10b981'; // Green - Excellent
+      label = 'Excellent';
+    } else if (percent >= 90) {
+      color = '#3b82f6'; // Blue - Good
+      label = 'Good';
+    } else if (percent >= 85) {
+      color = '#f59e0b'; // Yellow - Fair
+      label = 'Fair';
+    } else {
+      color = '#ef4444'; // Red - Poor
+      label = 'Poor';
+    }
+    
+    return (
+      <span
+        className={styles.accuracy_badge}
+        style={{ borderColor: color, color: color }}
+      >
+        {percent.toFixed(1)}% <span className={styles.accuracy_label}>({label})</span>
+      </span>
+    );
+  };
+
   const downloadCSV = () => {
     const headers = [
       'Student ID',
@@ -257,7 +287,7 @@ export default function AttendanceRecords() {
                 <th>Class</th>
                 <th>Time</th>
                 <th>Status</th>
-                <th>Accuracy</th>
+                <th>Face Recognition Accuracy</th>
                 <th>Method</th>
               </tr>
             </thead>
@@ -272,11 +302,7 @@ export default function AttendanceRecords() {
                   <td>{record.className}</td>
                   <td className={styles.time_cell}>{record.time}</td>
                   <td>{getStatusBadge(record.status)}</td>
-                  <td>
-                    {record.accuracy
-                      ? `${(record.accuracy * 100).toFixed(1)}%`
-                      : 'N/A'}
-                  </td>
+                  <td>{getAccuracyBadge(record.accuracy)}</td>
                   <td className={styles.method}>{record.method}</td>
                 </tr>
               ))}
