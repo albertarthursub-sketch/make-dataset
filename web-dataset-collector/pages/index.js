@@ -106,10 +106,21 @@ export default function Home() {
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1>📸 Facial Dataset Collector</h1>
-        <p>Binus School - Student Face Capture</p>
-      </header>
+      <div className={styles.main_layout}>
+        {/* Side Boot Sequence Panel */}
+        <aside className={styles.boot_sidebar}>
+          <div className={styles.boot_panel}>
+            <h3>⚙️ SYSTEM BOOT</h3>
+            <SystemBootLoader />
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className={styles.main_content}>
+          <header className={styles.header}>
+            <h1>🔐 FACIAL ENCODING COLLECTION</h1>
+            <p>Biometric Dataset Acquisition System v2.0</p>
+          </header>
 
       {/* Security Metrics Bar */}
       <div className={styles.security_metrics}>
@@ -172,6 +183,8 @@ export default function Home() {
           setStep={setStep}
         />
       )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -268,11 +281,6 @@ function InfoStep({
             </div>
           </>
         )}
-
-        <div className={styles.info_box}>
-          <h3>⚙️ System Boot Sequence</h3>
-          <SystemBootLoader />
-        </div>
       </div>
     </div>
   );
