@@ -117,6 +117,15 @@ export default function Home() {
 
         {/* Main Content Area */}
         <div className={styles.main_content}>
+          {/* Navigation */}
+          <nav className={styles.navigation}>
+            <div className={styles.nav_links}>
+              <a href="/" className={styles.nav_link_active}>📸 Enrollment</a>
+              <a href="/dashboard" className={styles.nav_link}>📊 Dashboard</a>
+              <a href="/attendance-records" className={styles.nav_link}>📅 Attendance</a>
+            </div>
+          </nav>
+
           <header className={styles.header}>
             <h1>🔐 FACIAL ENCODING COLLECTION</h1>
             <p>Biometric Dataset Acquisition System v2.0</p>
