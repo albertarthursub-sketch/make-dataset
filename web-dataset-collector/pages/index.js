@@ -614,56 +614,75 @@ function UploadStep({ studentName, imageCount, setStep }) {
 }
 
 // ==========================================
-// System Boot Loader - Techy Sequence
+// System Boot Loader - Continuous Random Sequence
 // ==========================================
 function SystemBootLoader() {
   const [bootSequence, setBootSequence] = useState([]);
 
-  useEffect(() => {
-    const bootSteps = [
-      { label: 'Initializing facial recognition...', delay: 200 },
-      { label: 'Loading biometric database [85%]', delay: 200 },
-      { label: 'Verifying encryption [256-bit AES]', delay: 200 },
-      { label: 'Authenticating credentials...', delay: 200 },
-      { label: 'Calibrating camera sensor...', delay: 200 },
-      { label: '✓ System ready [ALL SYSTEMS GO]', delay: 200 }
-    ];
+  const bootMessages = [
+    'Initializing facial recognition engine...',
+    'Loading biometric database [85%]',
+    'Verifying encryption [256-bit AES]',
+    'Authenticating credentials...',
+    'Calibrating camera sensor...',
+    'Scanning facial landmarks...',
+    'Processing neural networks [92%]',
+    'Syncing with cloud storage...',
+    'Validating encryption keys...',
+    'Optimizing capture parameters...',
+    'Checking system resources...',
+    'Initializing buffer cache...',
+    'Loading model weights [78%]',
+    'Verifying database integrity...',
+    'Establishing secure connection...',
+    'Calibrating light sensors...',
+    'Processing image filters...',
+    'Running diagnostics [PASS]',
+    'Checking hardware acceleration...',
+    'Loading compression codec...',
+    'Verifying API endpoints...',
+    'Initializing session tokens...',
+    'Preparing data pipeline...',
+    'Scanning environment...',
+    '✓ System ready [ALL SYSTEMS GO]'
+  ];
 
-    let currentIndex = 0;
-    const bootCycle = () => {
-      if (currentIndex < bootSteps.length) {
-        const step = bootSteps[currentIndex];
-        setBootSequence(prev => [...prev, step]);
-        currentIndex++;
-        setTimeout(bootCycle, step.delay);
-      } else {
-        // Reset after showing all steps
-        setTimeout(() => {
-          currentIndex = 0;
-          setBootSequence([]);
-          setTimeout(bootCycle, 500);
-        }, 1000);
-      }
+  useEffect(() => {
+    let isMounted = true;
+
+    const addBootLine = () => {
+      if (!isMounted) return;
+
+      const randomMsg = bootMessages[Math.floor(Math.random() * bootMessages.length)];
+      setBootSequence(prev => {
+        // Keep only last 15 lines to prevent memory issues
+        const newSequence = [...prev, { label: randomMsg, id: Date.now() }];
+        return newSequence.slice(-15);
+      });
+
+      // Random delay between 300-800ms for natural feel
+      const nextDelay = Math.random() * 500 + 300;
+      setTimeout(addBootLine, nextDelay);
     };
 
-    bootCycle();
-    
+    // Start the continuous boot sequence
+    addBootLine();
+
     return () => {
-      // Cleanup handled by setTimeout mechanism
+      isMounted = false;
     };
   }, []);
 
   return (
     <div className={styles.boot_sequence}>
-      {bootSequence.length === 0 ? (
+      {bootSequence.map((step, idx) => (
+        <div key={step.id} className={styles.boot_line}>
+          $ {step.label}
+          {idx === bootSequence.length - 1 && <span className={styles.boot_cursor}>█</span>}
+        </div>
+      ))}
+      {bootSequence.length === 0 && (
         <div className={styles.boot_line}>$ <span className={styles.boot_cursor}>█</span></div>
-      ) : (
-        bootSequence.map((step, idx) => (
-          <div key={idx} className={styles.boot_line}>
-            $ {step.label}
-            {idx === bootSequence.length - 1 && <span className={styles.boot_cursor}>█</span>}
-          </div>
-        ))
       )}
     </div>
   );
