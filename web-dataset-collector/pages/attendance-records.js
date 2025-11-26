@@ -3,10 +3,11 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { mockAttendanceRecords } from '../lib/mockData';
 import styles from '../styles/attendance.module.css';
 
 export default function AttendanceRecords() {
-  const [records, setRecords] = useState([]);
+  const [records, setRecords] = useState(mockAttendanceRecords);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filters, setFilters] = useState({
@@ -23,25 +24,34 @@ export default function AttendanceRecords() {
     early: 0,
     avgAccuracy: 0,
   });
+  const [useMockData, setUseMockData] = useState(true);
 
   useEffect(() => {
-    fetchAttendanceRecords();
-    const interval = setInterval(fetchAttendanceRecords, 60000); // Refresh every minute
-    return () => clearInterval(interval);
-  }, []);
+    if (useMockData) {
+      fetchAttendanceRecords();
+    } else {
+      // Set up real API polling
+      fetchAttendanceRecords();
+      const interval = setInterval(fetchAttendanceRecords, 60000); // Refresh every minute
+      return () => clearInterval(interval);
+    }
+  }, [useMockData]);
 
   const fetchAttendanceRecords = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
 
-      if (filters.studentId) params.append('studentId', filters.studentId);
-      if (filters.className) params.append('className', filters.className);
-      if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-      if (filters.dateTo) params.append('dateTo', filters.dateTo);
+      // Use mock data with client-side filtering
+      let recordsList = [...mockAttendanceRecords];
 
-      const response = await axios.get(`/api/dashboard/attendance?${params.toString()}`);
-      let recordsList = response.data.records || [];
+      if (filters.studentId) {
+        recordsList = recordsList.filter(r =>
+          r.studentId.includes(filters.studentId) || r.studentName.toLowerCase().includes(filters.studentId.toLowerCase())
+        );
+      }
+      if (filters.className) {
+        recordsList = recordsList.filter(r => r.className === filters.className);
+      }
 
       // Client-side filtering by status
       if (filters.status !== 'all') {

@@ -3,12 +3,13 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { mockAnalytics, mockLogs } from '../lib/mockData';
 import styles from '../styles/dashboard.module.css';
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState('overview');
-  const [analytics, setAnalytics] = useState(null);
-  const [logs, setLogs] = useState([]);
+  const [analytics, setAnalytics] = useState(mockAnalytics);
+  const [logs, setLogs] = useState(mockLogs);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [timeframe, setTimeframe] = useState('24h'); // 24h, 7d, 30d
@@ -18,16 +19,21 @@ export default function Dashboard() {
     className: '',
   });
   const [reportGenerating, setReportGenerating] = useState(false);
+  const [useMockData, setUseMockData] = useState(true); // Toggle between mock and real data
 
   useEffect(() => {
-    fetchAnalytics();
-    const interval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, [timeframe]);
+    if (!useMockData) {
+      fetchAnalytics();
+      const interval = setInterval(fetchAnalytics, 30000); // Refresh every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [timeframe, useMockData]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [filters, activeTab]);
+    if (!useMockData) {
+      fetchLogs();
+    }
+  }, [filters, activeTab, useMockData]);
 
   const fetchAnalytics = async () => {
     try {
@@ -48,20 +54,23 @@ export default function Dashboard() {
   const fetchLogs = async () => {
     try {
       setLoading(true);
-      const params = new URLSearchParams();
+
+      // Apply filters to mock data
+      let filteredLogs = [...mockLogs];
 
       if (filters.logType !== 'all') {
-        params.append('logType', filters.logType);
+        filteredLogs = filteredLogs.filter(log => log.logType === filters.logType);
       }
       if (filters.studentId) {
-        params.append('studentId', filters.studentId);
+        filteredLogs = filteredLogs.filter(log =>
+          log.studentId.includes(filters.studentId) || log.studentName.toLowerCase().includes(filters.studentId.toLowerCase())
+        );
       }
       if (filters.className) {
-        params.append('className', filters.className);
+        filteredLogs = filteredLogs.filter(log => log.className === filters.className);
       }
 
-      const response = await axios.get(`/api/dashboard/logs?${params.toString()}`);
-      setLogs(response.data.logs || []);
+      setLogs(filteredLogs);
       setError('');
     } catch (err) {
       console.error('Logs fetch error:', err);
