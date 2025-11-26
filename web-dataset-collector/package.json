@@ -10,6 +10,7 @@
     "export": "next export"
   },
   "dependencies": {
+    "@google-cloud/firestore": "^8.0.0",
     "axios": "^1.4.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -21,6 +22,5 @@
     "next": "^14.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
-  },
-  "devDependencies": {}
+  }
 }
