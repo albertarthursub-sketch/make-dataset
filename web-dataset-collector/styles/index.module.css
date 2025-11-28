@@ -525,6 +525,10 @@
 .capture_container {
   margin: 20px 0;
   position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .video {
@@ -536,6 +540,16 @@
   display: block;
   border: 2px solid rgba(0, 255, 136, 0.3);
   box-shadow: 0 0 20px rgba(0, 255, 136, 0.1);
+  position: relative;
+}
+
+.video_overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 4px;
+  z-index: 5;
+  cursor: crosshair;
 }
 
 .capture_info {
