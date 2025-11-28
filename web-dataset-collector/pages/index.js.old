@@ -455,20 +455,6 @@ function CaptureStep({
       const cropWidth = Math.min(video.videoWidth - cropX, width + padding * 2);
       const cropHeight = Math.min(video.videoHeight - cropY, height + padding * 2);
 
-      // Draw bounding box on overlay canvas
-      const overlayCanvas = canvasRef.current;
-      if (overlayCanvas && video) {
-        overlayCanvas.width = video.videoWidth;
-        overlayCanvas.height = video.videoHeight;
-        overlayCanvas.style.display = 'block';
-        const overlayCtx = overlayCanvas.getContext("2d");
-        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
-        overlayCtx.strokeStyle = "#00FF00";
-        overlayCtx.lineWidth = 3;
-        overlayCtx.rect(cropX, cropY, cropWidth, cropHeight);
-        overlayCtx.stroke();
-      }
-
       // Ensure minimum size (50x50) and maximum size (400x400) to match backend
       if (cropWidth < 50 || cropHeight < 50) {
         setError('❌ Face too small. Please move closer to the camera.');
@@ -616,11 +602,7 @@ function CaptureStep({
             autoPlay
             muted
           />
-          <canvas 
-            ref={canvasRef} 
-            className={styles.video_overlay}
-            style={{ position: 'absolute', top: 0, left: 0, display: 'none' }}
-          />
+          <canvas ref={canvasRef} style={{ display: 'none' }} />
           <canvas ref={croppedCanvasRef} style={{ display: 'none' }} />
 
           <div className={styles.capture_info}>
