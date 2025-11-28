@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/index.module.css';
 
-const TARGET_IMAGES = 5;
+const TARGET_IMAGES = 3;
 
 export default function Home() {
   // State management
