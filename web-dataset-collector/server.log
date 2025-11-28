@@ -40,3 +40,116 @@ Warning: viewport meta tags should not be used in _document.js's <Head>. https:/
 <w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
 <w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
 <w>  at resolve commonjs /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+ ○ Compiling / ...
+ ✓ Compiled / in 2.7s (274 modules)
+ ⨯ Error: Cannot find module './859.js'
+Require stack:
+- /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-server.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1134:15)
+    at /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:975:27)
+    at Module.require (node:internal/modules/cjs/loader:1225:19)
+    at mod.require (/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:177:18)
+    at __webpack_require__.f.require (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:181:28)
+    at /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:108:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:107:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:145:22)
+    at /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js:1:753
+    at Object.<anonymous> (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js:1:794)
+    at Module._compile (node:internal/modules/cjs/loader:1356:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/start-server.js'
+  ],
+  page: '/'
+}
+ ✓ Compiled /_error in 198ms (276 modules)
+ ⨯ Error: Cannot find module './859.js'
+Require stack:
+- /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-middleware.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-reloader-webpack.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-server.js
+- /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/start-server.js
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1134:15)
+    at /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require-hook.js:55:36
+    at Module._load (node:internal/modules/cjs/loader:975:27)
+    at Module.require (node:internal/modules/cjs/loader:1225:19)
+    at mod.require (/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require-hook.js:65:28)
+    at require (node:internal/modules/helpers:177:18)
+    at __webpack_require__.f.require (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:181:28)
+    at /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:108:40
+    at Array.reduce (<anonymous>)
+    at __webpack_require__.e (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:107:67)
+    at Array.map (<anonymous>)
+    at __webpack_require__.X (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js:145:22)
+    at /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js:1:753
+    at Object.<anonymous> (/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js:1:794)
+    at Module._compile (node:internal/modules/cjs/loader:1356:14) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/webpack-runtime.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_document.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-middleware.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/dev/hot-reloader-webpack.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-utils/setup-dev-bundler.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/router-server.js',
+    '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/lib/start-server.js'
+  ]
+}
+ GET / 500 in 5856ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/pages/_app' in /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_app.js', but to 'Error: Can't resolve '../../../../.next/server/pages/_app' in '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/pages/_app (expected /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_app.js)
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/handle-externals.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/handle-externals.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w>  at resolve commonjs /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/pages/_app' in /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_app.js', but to 'Error: Can't resolve '../../../../.next/server/pages/_app' in '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/pages/_app (expected /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/_app.js)
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at resolve commonjs /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
