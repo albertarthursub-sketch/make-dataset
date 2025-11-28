@@ -571,62 +571,73 @@ function CaptureStep({
     <div className={styles.step}>
       <div className={styles.card}>
         <h2>📷 Capture Face Images</h2>
-        <p className={styles.subtitle}>Position yourself in good lighting</p>
+        <p className={styles.subtitle}>{imageCount}/{TARGET_IMAGES} images captured</p>
 
-        <div className={styles.capture_container}>
+        {/* Camera Frame */}
+        <div style={{ width: '100%', marginBottom: '20px' }}>
           <video
             ref={videoRef}
             className={styles.video}
             playsInline
             autoPlay
             muted
+            style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
           />
           <canvas ref={canvasRef} style={{ display: 'none' }} />
+        </div>
 
-          <div className={styles.capture_info}>
-            <p>📸 Captured: <strong>{imageCount}/{TARGET_IMAGES}</strong></p>
-            <p>{streaming ? '✅ Camera Ready' : '⏳ Initializing camera...'}</p>
-            <p>{modelsLoaded ? '✅ Models Loaded' : '⏳ Loading face detection models...'}</p>
-            <p>💡 Tips: Good lighting, centered face, different angles</p>
-            {!streaming && (
-              <button
-                onClick={() => {
-                  setStreaming(false);
-                  setError('');
-                  setMessage('');
-                  startCamera();
-                }}
-                className={styles.btn_secondary}
-                style={{ marginTop: '10px', width: '100%' }}
-              >
-                🔄 Retry Camera
-              </button>
-            )}
-          </div>
+        {/* Capture Button */}
+        <button
+          onClick={captureImage}
+          disabled={!streaming || !modelsLoaded || imageCount >= TARGET_IMAGES || uploading}
+          className={styles.btn_capture}
+          style={{ width: '100%', marginBottom: '10px', padding: '15px', fontSize: '16px' }}
+        >
+          {!streaming ? '⏳ Camera loading...' : !modelsLoaded ? '⏳ Models loading...' : imageCount >= TARGET_IMAGES ? '✅ All images captured' : '📸 Capture Image'}
+        </button>
 
+        {/* Action Buttons */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
           <button
-            onClick={captureImage}
-            disabled={!streaming || !modelsLoaded || imageCount >= TARGET_IMAGES || uploading}
-            className={styles.btn_capture}
-            style={{ 
-              opacity: !streaming || !modelsLoaded ? 0.5 : 1,
-              cursor: !streaming || !modelsLoaded ? 'not-allowed' : 'pointer'
-            }}
+            onClick={() => setStep('info')}
+            className={styles.btn_secondary}
+            style={{ flex: 1, padding: '12px' }}
           >
-            {!streaming ? '⏳ Camera loading...' : !modelsLoaded ? '⏳ Models loading...' : imageCount >= TARGET_IMAGES ? '✅ Ready to Upload' : '📸 Capture'}
+            ← Enter Another Student
+          </button>
+          <button
+            onClick={uploadAll}
+            disabled={images.length === 0 || uploading}
+            className={styles.btn_primary}
+            style={{ flex: 1, padding: '12px' }}
+          >
+            {uploading ? '⏳ Uploading...' : `📤 Upload Images`}
           </button>
         </div>
 
+        {/* Captured Images Preview */}
         {images.length > 0 && (
-          <div className={styles.preview_grid}>
-            <h3>Preview ({images.length} images)</h3>
-            <div className={styles.image_grid}>
+          <div>
+            <h3 style={{ marginBottom: '10px' }}>Captured Images ({images.length})</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '10px' }}>
               {images.map((img, idx) => (
-                <div key={idx} className={styles.image_item}>
-                  <img src={img.data} alt={`Capture ${idx + 1}`} />
+                <div key={idx} style={{ position: 'relative', borderRadius: '8px', overflow: 'hidden' }}>
+                  <img src={img.data} alt={`Capture ${idx + 1}`} style={{ width: '100%', height: 'auto' }} />
                   <button
                     onClick={() => removeImage(idx)}
-                    className={styles.btn_delete}
+                    style={{
+                      position: 'absolute',
+                      top: '5px',
+                      right: '5px',
+                      background: 'red',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '25px',
+                      height: '25px',
+                      cursor: 'pointer',
+                      fontSize: '14px'
+                    }}
                   >
                     ✕
                   </button>
@@ -635,22 +646,6 @@ function CaptureStep({
             </div>
           </div>
         )}
-
-        <div className={styles.button_group}>
-          <button
-            onClick={() => setStep('info')}
-            className={styles.btn_secondary}
-          >
-            ← Back
-          </button>
-          <button
-            onClick={uploadAll}
-            disabled={images.length === 0 || uploading}
-            className={styles.btn_primary}
-          >
-            {uploading ? '⏳ Uploading...' : `📤 Upload ${images.length} Images`}
-          </button>
-        </div>
       </div>
     </div>
   );
