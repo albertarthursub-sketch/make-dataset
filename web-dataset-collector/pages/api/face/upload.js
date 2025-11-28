@@ -84,22 +84,24 @@ export default async function handler(req, res) {
     const imageBuffer = fs.readFileSync(imageFile.filepath);
     console.log(`Image buffer read: ${imageBuffer.length} bytes`);
 
-    // Try local storage first (faster, no Firebase needed)
+    // Try Firebase Storage first
     let uploadSuccess = false;
     let storageUrl = null;
     let uploadMethod = null;
     
-    // Try Firebase Storage first
     try {
       console.log('\n--- Attempting Firebase Storage upload ---');
+      console.log('Admin apps:', admin.apps.length);
+      console.log('Bucket name:', process.env.FIREBASE_STORAGE_BUCKET);
+      
       const bucket = admin.storage().bucket();
-      console.log('✓ Storage bucket connected');
+      console.log('✓ Storage bucket connected:', bucket.name);
       
       const fileName = `face_dataset/${className}/${studentName}/${position}_${Date.now()}.jpg`;
       console.log('Uploading file:', fileName);
       
       const file = bucket.file(fileName);
-      await file.save(imageBuffer, {
+      const saveResult = await file.save(imageBuffer, {
         metadata: {
           contentType: 'image/jpeg',
         }
@@ -109,10 +111,13 @@ export default async function handler(req, res) {
       uploadSuccess = true;
       uploadMethod = 'Firebase Storage';
       console.log(`✓ Firebase upload successful: ${fileName}`);
+      console.log('Save result:', saveResult);
     } catch (fbError) {
       console.error(`✗ Firebase Storage error: ${fbError.message}`);
+      console.error('Error name:', fbError.name);
       console.error('Error code:', fbError.code);
-      console.error('Full error:', fbError);
+      console.error('Full error:', JSON.stringify(fbError, null, 2));
+      console.error('Stack:', fbError.stack);
       
       // Fallback to local storage
       try {
@@ -131,7 +136,7 @@ export default async function handler(req, res) {
         console.log(`✓ Local storage success: ${storageUrl}`);
       } catch (localErr) {
         console.error(`✗ Local storage error: ${localErr.message}`);
-        console.error('Full error:', localErr);
+        console.error('Stack:', localErr.stack);
       }
     }
 
