@@ -1,5 +1,6 @@
 import formidable from 'formidable';
 import fs from 'fs';
+import path from 'path';
 import admin from 'firebase-admin';
 
 // Initialize Firebase if not already done
@@ -17,10 +18,12 @@ if (!admin.apps.length) {
   };
 
   try {
+    console.log('Initializing Firebase Admin...');
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
+    console.log('✓ Firebase Admin initialized');
   } catch (error) {
     console.error('Firebase initialization error:', error.message);
   }
@@ -39,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    console.log('Upload request received');
+    console.log('\n=== UPLOAD REQUEST START ===');
     
     // Parse form data with formidable
     const form = formidable({
@@ -78,11 +81,17 @@ export default async function handler(req, res) {
 
     // Try to upload to Firebase Storage
     let firebaseUrl = null;
+    let uploadSuccess = false;
+    
     try {
+      console.log('Attempting Firebase Storage upload...');
       const bucket = admin.storage().bucket();
+      console.log('Bucket obtained:', bucket.name);
+      
       const fileName = `face_dataset/${className}/${studentName}/${position}_${Date.now()}.jpg`;
       const file = bucket.file(fileName);
 
+      console.log('Uploading to:', fileName);
       await file.save(imageBuffer, {
         metadata: {
           contentType: 'image/jpeg',
@@ -90,9 +99,26 @@ export default async function handler(req, res) {
       });
 
       firebaseUrl = `gs://${process.env.FIREBASE_STORAGE_BUCKET}/${fileName}`;
+      uploadSuccess = true;
       console.log(`✓ Firebase upload success: ${fileName}`);
     } catch (fbError) {
-      console.log(`ℹ Firebase storage unavailable (OK for local testing): ${fbError.message}`);
+      console.error(`✗ Firebase storage error: ${fbError.message}`);
+      console.error('Firebase error details:', fbError);
+      
+      // Fallback: save locally
+      try {
+        const localDir = path.join(process.cwd(), 'public', 'uploads', className, studentName);
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+        }
+        const localPath = path.join(localDir, `${position}_${Date.now()}.jpg`);
+        fs.writeFileSync(localPath, imageBuffer);
+        firebaseUrl = `/uploads/${className}/${studentName}/${path.basename(localPath)}`;
+        uploadSuccess = true;
+        console.log(`✓ Fallback: Local upload to ${firebaseUrl}`);
+      } catch (localErr) {
+        console.error(`✗ Local fallback also failed: ${localErr.message}`);
+      }
     }
 
     // Save metadata to Firestore if available
@@ -122,7 +148,15 @@ export default async function handler(req, res) {
       // Ignore cleanup errors
     }
 
-    console.log('✓ Upload complete');
+    console.log('✓ Upload complete\n');
+    
+    if (!uploadSuccess) {
+      return res.status(500).json({ 
+        error: 'Upload failed - no storage available',
+        message: 'Could not upload to Firebase or local storage'
+      });
+    }
+
     return res.status(200).json({
       success: true,
       message: 'Image upload successful',
@@ -138,6 +172,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error('Upload error:', error);
+    console.error('Stack:', error.stack);
     return res.status(500).json({ 
       error: 'Upload failed',
       message: error.message,
