@@ -326,14 +326,26 @@ function CaptureStep({
 
   const loadModels = async () => {
     try {
-      const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision');
+      // Dynamic import to avoid SSR issues
+      const vision = await import('@mediapipe/tasks-vision');
+      const { FaceDetector, FilesetResolver } = vision;
+      
+      if (!FilesetResolver || !FaceDetector) {
+        throw new Error('MediaPipe modules not properly loaded');
+      }
+
+      // Create file set resolver for WASM
       const filesetResolver = await FilesetResolver.forVisionOnWasm();
+      
+      // Create face detector
       const detector = await FaceDetector.createFromOptions(filesetResolver, {
         baseOptions: {
-          modelAssetPath: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm`
+          modelAssetPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
         },
-        runningMode: 'VIDEO'
+        runningMode: 'VIDEO',
+        numFaces: 1
       });
+      
       faceDetectorRef.current = detector;
       setModelsLoaded(true);
       setMessage('✅ Face detection model loaded');
