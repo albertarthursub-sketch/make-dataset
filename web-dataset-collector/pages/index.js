@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import * as FaceDetection from '@mediapipe/face_detection';
 import styles from '../styles/index.module.css';
 
 // Note: useState is already imported above
+
+const { FaceDetector, FilesetResolver } = FaceDetection;
 
 export default function Home() {
   const [step, setStep] = useState('info'); // 'info', 'capture', 'upload'
@@ -312,9 +315,35 @@ function CaptureStep({
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const croppedCanvasRef = useRef(null);
+  const faceDetectorRef = useRef(null);
   const [streaming, setStreaming] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [modelsLoaded, setModelsLoaded] = useState(false);
   const TARGET_IMAGES = 5;
+
+  // Load face detection model
+  useEffect(() => {
+    loadModels();
+  }, []);
+
+  const loadModels = async () => {
+    try {
+      const filesetResolver = await FilesetResolver.forVisionOnWasm();
+      const detector = await FaceDetector.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/face_detection/face_detection.tflite'
+        },
+        runningMode: 'VIDEO'
+      });
+      faceDetectorRef.current = detector;
+      setModelsLoaded(true);
+      setMessage('✅ Face detection models loaded');
+    } catch (err) {
+      setError(`❌ Failed to load face detection models: ${err.message}`);
+      console.error('Model loading error:', err);
+    }
+  };
 
   useEffect(() => {
     startCamera();
@@ -323,7 +352,6 @@ function CaptureStep({
 
   const startCamera = async () => {
     try {
-      // Try with explicit constraints first
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { 
@@ -341,7 +369,6 @@ function CaptureStep({
           };
         }
       } catch (permissionErr) {
-        // If permission denied or constraints failed, try with minimal constraints
         console.log('Trying with minimal constraints...', permissionErr.message);
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
@@ -359,7 +386,6 @@ function CaptureStep({
     } catch (err) {
       console.error('Camera error:', err.message);
       
-      // Provide more specific error messages
       if (err.name === 'NotAllowedError') {
         setError('❌ Camera permission denied. Please enable camera access in your browser settings.');
       } else if (err.name === 'NotFoundError') {
@@ -367,7 +393,6 @@ function CaptureStep({
       } else if (err.name === 'NotReadableError') {
         setError('❌ Camera is in use by another application. Please close it and try again.');
       } else if (err.name === 'OverconstrainedError') {
-        // Try once more with no constraints
         try {
           console.log('Constraints too strict, trying basic access...');
           const stream = await navigator.mediaDevices.getUserMedia({ video: true });
@@ -394,36 +419,99 @@ function CaptureStep({
     }
   };
 
-  const captureImage = () => {
+  // Detect and crop face from video frame using MediaPipe
+  const detectAndCropFace = async () => {
+    if (!videoRef.current || !canvasRef.current || !modelsLoaded || !faceDetectorRef.current) {
+      setError('❌ Camera or models not ready');
+      return null;
+    }
+
+    try {
+      const video = videoRef.current;
+      const detector = faceDetectorRef.current;
+
+      // Run detection
+      const detectionResult = await detector.detectForVideo(video, Date.now());
+      const detections = detectionResult.detections;
+
+      if (!detections || detections.length === 0) {
+        setError('❌ No face detected. Please ensure your face is clearly visible.');
+        return null;
+      }
+
+      // Get the first (most prominent) face
+      const detection = detections[0];
+      const boundingBox = detection.boundingBox;
+
+      // MediaPipe returns normalized coordinates (0-1), so we need to scale them
+      const x = boundingBox.originX * video.videoWidth;
+      const y = boundingBox.originY * video.videoHeight;
+      const width = boundingBox.width * video.videoWidth;
+      const height = boundingBox.height * video.videoHeight;
+
+      // Add padding around face
+      const padding = 20;
+      const cropX = Math.max(0, x - padding);
+      const cropY = Math.max(0, y - padding);
+      const cropWidth = Math.min(video.videoWidth - cropX, width + padding * 2);
+      const cropHeight = Math.min(video.videoHeight - cropY, height + padding * 2);
+
+      // Ensure minimum size (50x50) and maximum size (400x400) to match backend
+      if (cropWidth < 50 || cropHeight < 50) {
+        setError('❌ Face too small. Please move closer to the camera.');
+        return null;
+      }
+
+      if (cropWidth > 400 || cropHeight > 400) {
+        setError('❌ Face too large. Please move further from the camera.');
+        return null;
+      }
+
+      // Crop to face region
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = cropWidth;
+      croppedCanvas.height = cropHeight;
+
+      const ctx = croppedCanvas.getContext('2d');
+      ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+      return croppedCanvas.toDataURL('image/jpeg', 0.95);
+    } catch (err) {
+      setError(`❌ Face detection error: ${err.message}`);
+      console.error('Detection error:', err);
+      return null;
+    }
+  };
+
+  const captureImage = async () => {
     if (!canvasRef.current || !videoRef.current) {
       setError('❌ Camera or canvas reference not available');
       return;
     }
 
     try {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      
-      if (!ctx) {
-        setError('❌ Canvas context not available');
+      if (!modelsLoaded) {
+        setError('❌ Face detection models still loading. Please wait...');
         return;
       }
-      
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      
-      if (canvas.width === 0 || canvas.height === 0) {
-        setError('❌ Video not loaded yet. Try again in a moment.');
-        return;
+
+      setMessage('🔍 Detecting face...');
+
+      // Detect and crop face
+      const croppedImageData = await detectAndCropFace();
+
+      if (!croppedImageData) {
+        return; // Error already set by detectAndCropFace
       }
-      
-      ctx.drawImage(videoRef.current, 0, 0);
-      const imageData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      const newImages = [...images, { data: imageData, timestamp: Date.now() }];
+
+      const newImages = [...images, { 
+        data: croppedImageData, 
+        timestamp: Date.now(),
+        cropped: true 
+      }];
       setImages(newImages);
       setImageCount(newImages.length);
-      setMessage(`✅ Captured image ${newImages.length}/${TARGET_IMAGES}`);
+      setMessage(`✅ Captured & cropped image ${newImages.length}/${TARGET_IMAGES}`);
     } catch (err) {
       setError(`❌ Failed to capture image: ${err.message}`);
       console.error('Capture error:', err);
@@ -457,6 +545,7 @@ function CaptureStep({
           formData.append('studentName', studentName);
           formData.append('className', className);
           formData.append('position', `capture_${i + 1}`);
+          formData.append('cropped', 'true');
 
           // Convert base64 data URL to Blob
           const base64Data = images[i].data.split(',')[1];
@@ -488,7 +577,7 @@ function CaptureStep({
       }
 
       if (uploaded > 0) {
-        setMessage(`✅ Successfully uploaded ${uploaded}/${images.length} images${failed > 0 ? ` (${failed} failed)` : ''}!`);
+        setMessage(`✅ Successfully uploaded ${uploaded}/${images.length} cropped images${failed > 0 ? ` (${failed} failed)` : ''}!`);
         setStep('upload');
       } else {
         setError('Failed to upload any images. Please try again.');
@@ -504,7 +593,7 @@ function CaptureStep({
     <div className={styles.step}>
       <div className={styles.card}>
         <h2>📷 Capture Face Images</h2>
-        <p className={styles.subtitle}>Position yourself in good lighting</p>
+        <p className={styles.subtitle}>Position yourself in good lighting - face will be automatically cropped</p>
 
         <div className={styles.capture_container}>
           <video
@@ -515,11 +604,12 @@ function CaptureStep({
             muted
           />
           <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <canvas ref={croppedCanvasRef} style={{ display: 'none' }} />
 
           <div className={styles.capture_info}>
             <p>📸 Captured: <strong>{imageCount}/{TARGET_IMAGES}</strong></p>
-            <p>{streaming ? '✅ Camera Ready' : '⏳ Initializing camera...'}</p>
-            <p>💡 Tips: Good lighting, centered face, different angles</p>
+            <p>{streaming ? (modelsLoaded ? '✅ Ready to detect' : '⏳ Loading models...') : '⏳ Initializing camera...'}</p>
+            <p>💡 Tips: Good lighting, centered face, different angles, 50-400px face size</p>
             {!streaming && (
               <button
                 onClick={() => {
@@ -538,24 +628,25 @@ function CaptureStep({
 
           <button
             onClick={captureImage}
-            disabled={!streaming || imageCount >= TARGET_IMAGES || uploading}
+            disabled={!streaming || !modelsLoaded || imageCount >= TARGET_IMAGES || uploading}
             className={styles.btn_capture}
             style={{ 
-              opacity: !streaming ? 0.5 : 1,
-              cursor: !streaming ? 'not-allowed' : 'pointer'
+              opacity: !streaming || !modelsLoaded ? 0.5 : 1,
+              cursor: !streaming || !modelsLoaded ? 'not-allowed' : 'pointer'
             }}
           >
-            {!streaming ? '⏳ Camera loading...' : imageCount >= TARGET_IMAGES ? '✅ Ready to Upload' : '📸 Capture'}
+            {!streaming ? '⏳ Camera loading...' : !modelsLoaded ? '⏳ Models loading...' : imageCount >= TARGET_IMAGES ? '✅ Ready to Upload' : '📸 Capture & Crop'}
           </button>
         </div>
 
         {images.length > 0 && (
           <div className={styles.preview_grid}>
-            <h3>Preview ({images.length} images)</h3>
+            <h3>Preview ({images.length} cropped images)</h3>
             <div className={styles.image_grid}>
               {images.map((img, idx) => (
                 <div key={idx} className={styles.image_item}>
                   <img src={img.data} alt={`Capture ${idx + 1}`} />
+                  <span className={styles.crop_badge}>🔍 Cropped</span>
                   <button
                     onClick={() => removeImage(idx)}
                     className={styles.btn_delete}
@@ -580,7 +671,7 @@ function CaptureStep({
             disabled={images.length === 0 || uploading}
             className={styles.btn_primary}
           >
-            {uploading ? '⏳ Uploading...' : `📤 Upload ${images.length} Images`}
+            {uploading ? '⏳ Uploading...' : `📤 Upload ${images.length} Cropped Images`}
           </button>
         </div>
       </div>
