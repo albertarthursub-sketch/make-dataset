@@ -1,10 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import * as FaceDetection from '@mediapipe/face_detection';
 import styles from '../styles/index.module.css';
-
-// Note: useState is already imported above
-
-const { FaceDetector, FilesetResolver } = FaceDetection;
 
 export default function Home() {
   const [step, setStep] = useState('info'); // 'info', 'capture', 'upload'
@@ -329,6 +324,10 @@ function CaptureStep({
 
   const loadModels = async () => {
     try {
+      // Dynamically import MediaPipe for Next.js compatibility
+      const FaceDetection = await import('@mediapipe/face_detection');
+      const { FaceDetector, FilesetResolver } = FaceDetection;
+      
       const filesetResolver = await FilesetResolver.forVisionOnWasm();
       const detector = await FaceDetector.createFromOptions(filesetResolver, {
         baseOptions: {
