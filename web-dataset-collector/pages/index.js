@@ -330,20 +330,22 @@ function CaptureStep({
       const vision = await import('@mediapipe/tasks-vision');
       const { FaceDetector, FilesetResolver } = vision;
       
-      if (!FilesetResolver || !FaceDetector) {
-        throw new Error('MediaPipe modules not properly loaded');
+      // Try both method names for FilesetResolver
+      let filesetResolver;
+      if (FilesetResolver.forVisionOnWasm) {
+        filesetResolver = await FilesetResolver.forVisionOnWasm();
+      } else if (FilesetResolver.forVisionWasm) {
+        filesetResolver = await FilesetResolver.forVisionWasm();
+      } else {
+        throw new Error('FilesetResolver methods not found. Available methods: ' + Object.keys(FilesetResolver));
       }
-
-      // Create file set resolver for WASM
-      const filesetResolver = await FilesetResolver.forVisionOnWasm();
       
       // Create face detector
       const detector = await FaceDetector.createFromOptions(filesetResolver, {
         baseOptions: {
-          modelAssetPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm'
+          modelAssetPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/face_detector.tflite'
         },
-        runningMode: 'VIDEO',
-        numFaces: 1
+        runningMode: 'VIDEO'
       });
       
       faceDetectorRef.current = detector;
@@ -351,7 +353,8 @@ function CaptureStep({
       setMessage('✅ Face detection model loaded');
     } catch (err) {
       console.error('Failed to load models:', err);
-      setError(`❌ Failed to load models: ${err.message}`);
+      console.error('Error stack:', err.stack);
+      setError(`❌ Model load failed: ${err.message}`);
     }
   };
 
