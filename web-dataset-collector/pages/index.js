@@ -414,6 +414,29 @@ function CaptureStep({
     setImageCount(newImages.length);
   };
 
+  const handleFileSelect = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    try {
+      for (const file of files) {
+        if (imageCount >= TARGET_IMAGES) break;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const imageData = e.target.result;
+          const newImages = [...images, { data: imageData, timestamp: Date.now() }];
+          setImages(newImages);
+          setImageCount(newImages.length);
+          setMessage(`✅ Loaded ${newImages.length}/${TARGET_IMAGES} images`);
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err) {
+      setError(`Failed to load image: ${err.message}`);
+    }
+  };
+
   const uploadAll = async () => {
     if (images.length === 0) {
       setError('No images to upload');
@@ -497,7 +520,7 @@ function CaptureStep({
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
 
-        {/* Capture Button */}
+        {/* Camera Capture Button */}
         <button
           onClick={captureImage}
           disabled={!streaming || imageCount >= TARGET_IMAGES || uploading}
@@ -506,6 +529,22 @@ function CaptureStep({
         >
           {!streaming ? '⏳ Camera loading...' : imageCount >= TARGET_IMAGES ? '✅ All images captured' : '📸 Capture Image'}
         </button>
+
+        {/* File Upload Alternative */}
+        <div style={{ marginBottom: '15px', padding: '10px', border: '2px dashed #ccc', borderRadius: '8px', textAlign: 'center' }}>
+          <label style={{ display: 'block', cursor: 'pointer', color: '#666' }}>
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              disabled={imageCount >= TARGET_IMAGES || uploading}
+              onChange={handleFileSelect}
+              style={{ display: 'none' }}
+            />
+            <span style={{ fontSize: '14px', fontWeight: 'bold' }}>📁 Or click to upload image files</span>
+          </label>
+          <p style={{ fontSize: '12px', color: '#999', margin: '5px 0 0 0' }}>Alternative if camera unavailable</p>
+        </div>
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
