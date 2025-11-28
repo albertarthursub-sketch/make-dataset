@@ -1,38 +1,7 @@
 import formidable from 'formidable';
 import fs from 'fs';
 import path from 'path';
-import admin from 'firebase-admin';
-
-// Initialize Firebase if not already done
-if (!admin.apps.length) {
-  console.log('=== FIREBASE INITIALIZATION ===');
-  console.log('Project ID:', process.env.FIREBASE_PROJECT_ID);
-  console.log('Storage Bucket:', process.env.FIREBASE_STORAGE_BUCKET);
-  console.log('Client Email:', process.env.FIREBASE_CLIENT_EMAIL);
-  
-  const serviceAccount = {
-    type: "service_account",
-    project_id: process.env.FIREBASE_PROJECT_ID,
-    private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
-    private_key: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    client_email: process.env.FIREBASE_CLIENT_EMAIL,
-    client_id: process.env.FIREBASE_CLIENT_ID,
-    auth_uri: "https://accounts.google.com/o/oauth2/auth",
-    token_uri: "https://oauth2.googleapis.com/token",
-    auth_provider_x509_cert_url: "https://www.googleapis.com/oauth2/v1/certs",
-  };
-
-  try {
-    console.log('Initializing Firebase Admin...');
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-    });
-    console.log('✓ Firebase Admin initialized successfully');
-  } catch (error) {
-    console.error('✗ Firebase initialization error:', error.message);
-  }
-}
+import { getFirebaseStorage, getFirestoreDB, initializeFirebase } from '../../../lib/firebase-admin';
 
 // Disable body parser for this route
 export const config = {
@@ -47,6 +16,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Initialize Firebase
+    initializeFirebase();
+
     console.log('\n=== UPLOAD REQUEST START ===');
     
     // Parse form data with formidable
@@ -91,10 +63,9 @@ export default async function handler(req, res) {
     
     try {
       console.log('\n--- Attempting Firebase Storage upload ---');
-      console.log('Admin apps:', admin.apps.length);
-      console.log('Bucket name:', process.env.FIREBASE_STORAGE_BUCKET);
       
-      const bucket = admin.storage().bucket();
+      const storage = getFirebaseStorage();
+      const bucket = storage.bucket();
       console.log('✓ Storage bucket connected:', bucket.name);
       
       const fileName = `face_dataset/${className}/${studentName}/${position}_${Date.now()}.jpg`;
@@ -142,7 +113,7 @@ export default async function handler(req, res) {
 
     // Save metadata to Firestore if available
     try {
-      const db = admin.firestore();
+      const db = getFirestoreDB();
       const metadata = {
         fileName: imageFile.originalFilename || `capture_${Date.now()}.jpg`,
         fileSize: imageFile.size,
