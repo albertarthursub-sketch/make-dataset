@@ -39,6 +39,8 @@ export default async function handler(req, res) {
   }
 
   try {
+    console.log('Upload request received');
+    
     // Parse form data with formidable
     const form = formidable({
       uploadDir: '/tmp',
@@ -49,15 +51,22 @@ export default async function handler(req, res) {
 
     const [fields, files] = await form.parse(req);
 
+    console.log('Form parsed. Fields:', Object.keys(fields), 'Files:', Object.keys(files));
+
     const studentId = Array.isArray(fields.studentId) ? fields.studentId[0] : fields.studentId;
     const studentName = Array.isArray(fields.studentName) ? fields.studentName[0] : fields.studentName;
     const className = Array.isArray(fields.className) ? fields.className[0] : fields.className;
     const position = Array.isArray(fields.position) ? fields.position[0] : fields.position;
     const imageFile = Array.isArray(files.image) ? files.image[0] : files.image;
 
+    console.log(`Student: ${studentName}, ID: ${studentId}, Class: ${className}, Position: ${position}`);
+    console.log(`Image file:`, imageFile ? `${imageFile.originalFilename} (${imageFile.size} bytes)` : 'MISSING');
+
     if (!studentId || !studentName || !className || !imageFile) {
+      console.error('Missing required fields:', { studentId, studentName, className, hasImage: !!imageFile });
       return res.status(400).json({ 
-        error: 'Missing required fields'
+        error: 'Missing required fields',
+        details: { studentId, studentName, className, hasImage: !!imageFile }
       });
     }
 
@@ -65,6 +74,7 @@ export default async function handler(req, res) {
 
     // Read image file
     const imageBuffer = fs.readFileSync(imageFile.filepath);
+    console.log(`Image buffer read: ${imageBuffer.length} bytes`);
 
     // Try to upload to Firebase Storage
     let firebaseUrl = null;
@@ -112,6 +122,7 @@ export default async function handler(req, res) {
       // Ignore cleanup errors
     }
 
+    console.log('✓ Upload complete');
     return res.status(200).json({
       success: true,
       message: 'Image upload successful',
@@ -129,7 +140,8 @@ export default async function handler(req, res) {
     console.error('Upload error:', error);
     return res.status(500).json({ 
       error: 'Upload failed',
-      message: error.message 
+      message: error.message,
+      stack: error.stack
     });
   }
 }
