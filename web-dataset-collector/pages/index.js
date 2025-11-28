@@ -312,14 +312,36 @@ function CaptureStep({
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const faceDetectorRef = useRef(null);
   const [streaming, setStreaming] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const TARGET_IMAGES = 5;
+  const [modelsLoaded, setModelsLoaded] = useState(false);
+  const TARGET_IMAGES = 3;
 
   useEffect(() => {
+    loadModels();
     startCamera();
     return () => stopCamera();
   }, []);
+
+  const loadModels = async () => {
+    try {
+      const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision');
+      const filesetResolver = await FilesetResolver.forVisionOnWasm();
+      const detector = await FaceDetector.createFromOptions(filesetResolver, {
+        baseOptions: {
+          modelAssetPath: `https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.0/wasm`
+        },
+        runningMode: 'VIDEO'
+      });
+      faceDetectorRef.current = detector;
+      setModelsLoaded(true);
+      setMessage('✅ Face detection model loaded');
+    } catch (err) {
+      console.error('Failed to load models:', err);
+      setError(`❌ Failed to load models: ${err.message}`);
+    }
+  };
 
   const startCamera = async () => {
     try {
@@ -394,40 +416,85 @@ function CaptureStep({
     }
   };
 
-  const captureImage = () => {
-    if (!canvasRef.current || !videoRef.current) {
-      setError('❌ Camera or canvas reference not available');
-      return;
+  const detectAndCropFace = async () => {
+    if (!videoRef.current || !modelsLoaded || !faceDetectorRef.current) {
+      setError('❌ Camera or models not ready');
+      return null;
     }
 
     try {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
+      const video = videoRef.current;
+      const detector = faceDetectorRef.current;
       
-      if (!ctx) {
-        setError('❌ Canvas context not available');
-        return;
+      // Use detectForVideo method for video stream
+      const results = await detector.detectForVideo(video, Date.now());
+      const detections = results.detections;
+
+      if (!detections || detections.length === 0) {
+        setError('❌ No face detected');
+        return null;
       }
+
+      // Get the first face detection
+      const face = detections[0];
       
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      
-      if (canvas.width === 0 || canvas.height === 0) {
-        setError('❌ Video not loaded yet. Try again in a moment.');
-        return;
+      // boundingBox has originX, originY (top-left), width, height as normalized coordinates
+      const bbox = face.boundingBox;
+      if (!bbox) {
+        setError('❌ Could not get face bounding box');
+        return null;
       }
-      
-      ctx.drawImage(videoRef.current, 0, 0);
-      const imageData = canvas.toDataURL('image/jpeg', 0.95);
-      
-      const newImages = [...images, { data: imageData, timestamp: Date.now() }];
-      setImages(newImages);
-      setImageCount(newImages.length);
-      setMessage(`✅ Captured image ${newImages.length}/${TARGET_IMAGES}`);
+
+      const x = bbox.originX * video.videoWidth;
+      const y = bbox.originY * video.videoHeight;
+      const width = bbox.width * video.videoWidth;
+      const height = bbox.height * video.videoHeight;
+
+      const padding = 20;
+      const cropX = Math.max(0, x - padding);
+      const cropY = Math.max(0, y - padding);
+      const cropWidth = Math.min(video.videoWidth - cropX, width + padding * 2);
+      const cropHeight = Math.min(video.videoHeight - cropY, height + padding * 2);
+
+      if (cropWidth < 50 || cropHeight < 50) {
+        setError('❌ Face too small - move closer');
+        return null;
+      }
+
+      if (cropWidth > 400 || cropHeight > 400) {
+        setError('❌ Face too large - move back');
+        return null;
+      }
+
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = cropWidth;
+      croppedCanvas.height = cropHeight;
+      const ctx = croppedCanvas.getContext('2d');
+      ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
+
+      return croppedCanvas.toDataURL('image/jpeg', 0.95);
     } catch (err) {
-      setError(`❌ Failed to capture image: ${err.message}`);
-      console.error('Capture error:', err);
+      console.error('Detection error:', err);
+      setError(`❌ Detection error: ${err.message}`);
+      return null;
     }
+  };
+
+  const captureImage = async () => {
+    if (!modelsLoaded) {
+      setError('❌ Models still loading, please wait...');
+      return;
+    }
+
+    const croppedImage = await detectAndCropFace();
+    if (!croppedImage) {
+      return;
+    }
+
+    const newImages = [...images, { data: croppedImage, timestamp: Date.now() }];
+    setImages(newImages);
+    setImageCount(newImages.length);
+    setMessage(`✅ Captured image ${newImages.length}/${TARGET_IMAGES}`);
   };
 
   const removeImage = (index) => {
@@ -519,6 +586,7 @@ function CaptureStep({
           <div className={styles.capture_info}>
             <p>📸 Captured: <strong>{imageCount}/{TARGET_IMAGES}</strong></p>
             <p>{streaming ? '✅ Camera Ready' : '⏳ Initializing camera...'}</p>
+            <p>{modelsLoaded ? '✅ Models Loaded' : '⏳ Loading face detection models...'}</p>
             <p>💡 Tips: Good lighting, centered face, different angles</p>
             {!streaming && (
               <button
@@ -538,14 +606,14 @@ function CaptureStep({
 
           <button
             onClick={captureImage}
-            disabled={!streaming || imageCount >= TARGET_IMAGES || uploading}
+            disabled={!streaming || !modelsLoaded || imageCount >= TARGET_IMAGES || uploading}
             className={styles.btn_capture}
             style={{ 
-              opacity: !streaming ? 0.5 : 1,
-              cursor: !streaming ? 'not-allowed' : 'pointer'
+              opacity: !streaming || !modelsLoaded ? 0.5 : 1,
+              cursor: !streaming || !modelsLoaded ? 'not-allowed' : 'pointer'
             }}
           >
-            {!streaming ? '⏳ Camera loading...' : imageCount >= TARGET_IMAGES ? '✅ Ready to Upload' : '📸 Capture'}
+            {!streaming ? '⏳ Camera loading...' : !modelsLoaded ? '⏳ Models loading...' : imageCount >= TARGET_IMAGES ? '✅ Ready to Upload' : '📸 Capture'}
           </button>
         </div>
 
