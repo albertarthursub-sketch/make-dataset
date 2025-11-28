@@ -1,0 +1,42 @@
+
+> facial-attendance-web-collector@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.33
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 2.6s
+ ○ Compiling / ...
+ ✓ Compiled / in 6.7s (270 modules)
+Warning: viewport meta tags should not be used in _document.js's <Head>. https://nextjs.org/docs/messages/no-document-viewport-meta
+Warning: viewport meta tags should not be used in _document.js's <Head>. https://nextjs.org/docs/messages/no-document-viewport-meta
+ GET / 200 in 354ms
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/index.js'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/pages/index' in /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/index.js', but to 'Error: Can't resolve '../../../../.next/server/pages/index' in '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/pages/index (expected /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/index.js)
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+<w>  at resolve commonjs /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-route-loader/index.js
+ ✓ Compiled in 545ms (258 modules)
+<w> [webpack.cache.PackFileCacheStrategy] Caching failed for pack: Error: ENOENT: no such file or directory, lstat '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/index.js'
+<w> [webpack.cache.PackFileCacheStrategy/webpack.FileSystemInfo] Resolving '../../../../.next/server/pages/index' in /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server for build dependencies doesn't lead to expected result '/home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/index.js', but to 'Error: Can't resolve '../../../../.next/server/pages/index' in '/home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server'' instead. Resolving dependencies are ignored for this path.
+<w>  at resolve commonjs file ../../../../.next/server/pages/index (expected /home/pandora/facial-attendance-v2/web-dataset-collector/.next/server/pages/index.js)
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/require.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/server/load-components.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/utils.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/handle-externals.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/handle-externals.js
+<w>  at file dependencies /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w>  at file /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js
+<w>  at resolve commonjs /home/pandora/facial-attendance-v2/web-dataset-collector/node_modules/next/dist/build/webpack/loaders/next-swc-loader.js

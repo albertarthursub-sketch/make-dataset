@@ -1,3 +1,52 @@
+/**
+ * FACIAL ATTENDANCE - Face Detection & Cropping UI
+ * 
+ * FEATURES IMPLEMENTED:
+ * 1. Real-time face detection using MediaPipe Face Detection API
+ * 2. Automatic face cropping with bounding box visualization
+ * 3. Canvas overlay showing the crop area in real-time (GREEN RECTANGLE)
+ * 4. Base64 to Blob conversion for image upload
+ * 5. FormData multipart upload to /api/face/upload endpoint
+ * 6. Comprehensive console logging for debugging
+ * 
+ * DEBUGGING GUIDE:
+ * Open Browser DevTools (F12) and go to Console tab
+ * 
+ * When capturing images, you should see:
+ * - "Face predictions: [...]" - Face detection working
+ * - "Bounding box: {...}" - Detection coordinates
+ * - "Video dimensions: 1280x720" - Video resolution
+ * - "Raw crop area: x=..., y=..., width=..., height=..." - Initial crop
+ * - "Adjusted crop: cropX=..., cropY=..., cropWidth=..., cropHeight=..." - Final crop
+ * - "Bounding box drawn on canvas overlay" - Green rectangle visible
+ * - "Cropped image created: 200 x 200" - Image size (50-400px)
+ * 
+ * When uploading images, you should see:
+ * - "Starting upload for image 1/5" - Upload started
+ * - "Base64 data length: 12345" - Base64 string converted
+ * - "Binary string length: 9234" - Binary data size
+ * - "Blob size: 3078 bytes" - Final blob ready
+ * - "Uploading image 1 to /api/face/upload" - Request sent
+ * - "Upload response status: 200" - Success (or error code)
+ * - "Upload successful for image 1: {...}" - Upload complete with URL
+ * 
+ * TROUBLESHOOTING:
+ * ✓ No bounding box visible?
+ *   - Check: "Bounding box drawn on canvas overlay" in console
+ *   - The green rectangle should appear over the video when face is detected
+ *   - Make sure lighting is good and face is clearly visible
+ * 
+ * ✓ Images not uploading?
+ *   - Check: "Upload response status:" in console
+ *   - If status is 400/413: Image data too large or malformed
+ *   - If status is 500: Server error, check /api/face/upload logs
+ *   - If no network request: Check FormData construction logs
+ * 
+ * ✓ Preview images wrong?
+ *   - Each image should show only the cropped face, not full frame
+ *   - Check "Cropped image created:" shows reasonable dimensions (50-400px)
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/index.module.css';
 
@@ -433,6 +482,9 @@ function CaptureStep({
       const detectionResult = await detector.detectForVideo(video, Date.now());
       const detections = detectionResult.detections;
 
+      console.log("Detection result:", detectionResult);
+      console.log("Detections count:", detections ? detections.length : 0);
+
       if (!detections || detections.length === 0) {
         setError('❌ No face detected. Please ensure your face is clearly visible.');
         return null;
@@ -442,11 +494,16 @@ function CaptureStep({
       const detection = detections[0];
       const boundingBox = detection.boundingBox;
 
+      console.log("Bounding box:", boundingBox);
+
       // MediaPipe returns normalized coordinates (0-1), so we need to scale them
       const x = boundingBox.originX * video.videoWidth;
       const y = boundingBox.originY * video.videoHeight;
       const width = boundingBox.width * video.videoWidth;
       const height = boundingBox.height * video.videoHeight;
+
+      console.log(`Video dimensions: ${video.videoWidth}x${video.videoHeight}`);
+      console.log(`Raw crop area: x=${x}, y=${y}, width=${width}, height=${height}`);
 
       // Add padding around face
       const padding = 20;
@@ -454,6 +511,8 @@ function CaptureStep({
       const cropY = Math.max(0, y - padding);
       const cropWidth = Math.min(video.videoWidth - cropX, width + padding * 2);
       const cropHeight = Math.min(video.videoHeight - cropY, height + padding * 2);
+
+      console.log(`Adjusted crop: cropX=${cropX}, cropY=${cropY}, cropWidth=${cropWidth}, cropHeight=${cropHeight}`);
 
       // Ensure minimum size (50x50) and maximum size (400x400) to match backend
       if (cropWidth < 50 || cropHeight < 50) {
@@ -466,6 +525,21 @@ function CaptureStep({
         return null;
       }
 
+      // Draw bounding box on overlay canvas
+      const overlayCanvas = canvasRef.current;
+      if (overlayCanvas && video) {
+        overlayCanvas.width = video.videoWidth;
+        overlayCanvas.height = video.videoHeight;
+        overlayCanvas.style.display = 'block';
+        const overlayCtx = overlayCanvas.getContext("2d");
+        overlayCtx.clearRect(0, 0, overlayCanvas.width, overlayCanvas.height);
+        overlayCtx.strokeStyle = "#00FF00";
+        overlayCtx.lineWidth = 3;
+        overlayCtx.rect(cropX, cropY, cropWidth, cropHeight);
+        overlayCtx.stroke();
+        console.log("Bounding box drawn on canvas overlay");
+      }
+
       // Crop to face region
       const croppedCanvas = document.createElement('canvas');
       croppedCanvas.width = cropWidth;
@@ -474,7 +548,9 @@ function CaptureStep({
       const ctx = croppedCanvas.getContext('2d');
       ctx.drawImage(video, cropX, cropY, cropWidth, cropHeight, 0, 0, cropWidth, cropHeight);
 
-      return croppedCanvas.toDataURL('image/jpeg', 0.95);
+      const croppedDataUrl = croppedCanvas.toDataURL('image/jpeg', 0.95);
+      console.log("Cropped image created:", croppedCanvas.width, "x", croppedCanvas.height);
+      return croppedDataUrl;
     } catch (err) {
       setError(`❌ Face detection error: ${err.message}`);
       console.error('Detection error:', err);
@@ -539,6 +615,7 @@ function CaptureStep({
       
       for (let i = 0; i < images.length; i++) {
         try {
+          console.log(`Starting upload for image ${i + 1}/${images.length}`);
           const formData = new FormData();
           formData.append('studentId', studentId);
           formData.append('studentName', studentName);
@@ -548,30 +625,44 @@ function CaptureStep({
 
           // Convert base64 data URL to Blob
           const base64Data = images[i].data.split(',')[1];
+          console.log(`Base64 data length: ${base64Data.length}`);
+          
           const binaryString = atob(base64Data);
+          console.log(`Binary string length: ${binaryString.length}`);
+          
           const bytes = new Uint8Array(binaryString.length);
           for (let j = 0; j < binaryString.length; j++) {
             bytes[j] = binaryString.charCodeAt(j);
           }
+          
           const blob = new Blob([bytes], { type: 'image/jpeg' });
+          console.log(`Blob size: ${blob.size} bytes`);
+          
           formData.append('image', blob, `${studentName}_${i + 1}.jpg`);
 
+          console.log(`Uploading image ${i + 1} to /api/face/upload`);
           const uploadResponse = await fetch('/api/face/upload', {
             method: 'POST',
             body: formData
           });
 
+          console.log(`Upload response status: ${uploadResponse.status}`);
+          
           if (uploadResponse.ok) {
             uploaded++;
+            const responseData = await uploadResponse.json();
+            console.log(`Upload successful for image ${i + 1}:`, responseData);
             setMessage(`⏳ Uploading... ${uploaded}/${images.length}`);
           } else {
             failed++;
-            const errorData = await uploadResponse.json();
-            console.error(`Upload failed for image ${i + 1}:`, errorData);
+            const errorText = await uploadResponse.text();
+            console.error(`Upload failed for image ${i + 1}. Status: ${uploadResponse.status}, Response:`, errorText);
+            setError(`❌ Image ${i + 1} upload failed (${uploadResponse.status})`);
           }
         } catch (imgErr) {
           failed++;
           console.error(`Error uploading image ${i + 1}:`, imgErr);
+          setError(`❌ Error uploading image ${i + 1}: ${imgErr.message}`);
         }
       }
 
@@ -579,10 +670,11 @@ function CaptureStep({
         setMessage(`✅ Successfully uploaded ${uploaded}/${images.length} cropped images${failed > 0 ? ` (${failed} failed)` : ''}!`);
         setStep('upload');
       } else {
-        setError('Failed to upload any images. Please try again.');
+        setError('❌ Failed to upload any images. Check console for details.');
       }
     } catch (err) {
-      setError(`Upload failed: ${err.message}`);
+      setError(`❌ Upload failed: ${err.message}`);
+      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }
@@ -602,7 +694,11 @@ function CaptureStep({
             autoPlay
             muted
           />
-          <canvas ref={canvasRef} style={{ display: 'none' }} />
+          <canvas 
+            ref={canvasRef} 
+            className={styles.video_overlay}
+            style={{ position: 'absolute', top: 0, left: 0, display: 'none' }}
+          />
           <canvas ref={croppedCanvasRef} style={{ display: 'none' }} />
 
           <div className={styles.capture_info}>
