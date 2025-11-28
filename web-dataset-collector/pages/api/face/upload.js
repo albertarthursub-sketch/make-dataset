@@ -5,6 +5,11 @@ import admin from 'firebase-admin';
 
 // Initialize Firebase if not already done
 if (!admin.apps.length) {
+  console.log('=== FIREBASE INITIALIZATION ===');
+  console.log('Project ID:', process.env.FIREBASE_PROJECT_ID);
+  console.log('Storage Bucket:', process.env.FIREBASE_STORAGE_BUCKET);
+  console.log('Client Email:', process.env.FIREBASE_CLIENT_EMAIL);
+  
   const serviceAccount = {
     type: "service_account",
     project_id: process.env.FIREBASE_PROJECT_ID,
@@ -23,9 +28,9 @@ if (!admin.apps.length) {
       credential: admin.credential.cert(serviceAccount),
       storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
     });
-    console.log('✓ Firebase Admin initialized');
+    console.log('✓ Firebase Admin initialized successfully');
   } catch (error) {
-    console.error('Firebase initialization error:', error.message);
+    console.error('✗ Firebase initialization error:', error.message);
   }
 }
 
@@ -82,46 +87,51 @@ export default async function handler(req, res) {
     // Try local storage first (faster, no Firebase needed)
     let uploadSuccess = false;
     let storageUrl = null;
+    let uploadMethod = null;
     
+    // Try Firebase Storage first
     try {
-      console.log('Attempting local storage save...');
-      const localDir = path.join(process.cwd(), 'public', 'uploads', className, studentName);
-      if (!fs.existsSync(localDir)) {
-        fs.mkdirSync(localDir, { recursive: true });
-      }
-      const localFileName = `${position}_${Date.now()}.jpg`;
-      const localPath = path.join(localDir, localFileName);
-      fs.writeFileSync(localPath, imageBuffer);
-      storageUrl = `/uploads/${className}/${studentName}/${localFileName}`;
+      console.log('\n--- Attempting Firebase Storage upload ---');
+      const bucket = admin.storage().bucket();
+      console.log('✓ Storage bucket connected');
+      
+      const fileName = `face_dataset/${className}/${studentName}/${position}_${Date.now()}.jpg`;
+      console.log('Uploading file:', fileName);
+      
+      const file = bucket.file(fileName);
+      await file.save(imageBuffer, {
+        metadata: {
+          contentType: 'image/jpeg',
+        }
+      });
+
+      storageUrl = `gs://${process.env.FIREBASE_STORAGE_BUCKET}/${fileName}`;
       uploadSuccess = true;
-      console.log(`✓ Local storage success: ${storageUrl}`);
-    } catch (localErr) {
-      console.error(`✗ Local storage error: ${localErr.message}`);
-    }
-
-    // Try Firebase Storage as backup
-    if (!uploadSuccess) {
+      uploadMethod = 'Firebase Storage';
+      console.log(`✓ Firebase upload successful: ${fileName}`);
+    } catch (fbError) {
+      console.error(`✗ Firebase Storage error: ${fbError.message}`);
+      console.error('Error code:', fbError.code);
+      console.error('Full error:', fbError);
+      
+      // Fallback to local storage
       try {
-        console.log('Attempting Firebase Storage upload...');
-        const bucket = admin.storage().bucket();
-        console.log('Bucket obtained:', bucket.name);
-        
-        const fileName = `face_dataset/${className}/${studentName}/${position}_${Date.now()}.jpg`;
-        const file = bucket.file(fileName);
-
-        console.log('Uploading to:', fileName);
-        await file.save(imageBuffer, {
-          metadata: {
-            contentType: 'image/jpeg',
-          }
-        });
-
-        storageUrl = `gs://${process.env.FIREBASE_STORAGE_BUCKET}/${fileName}`;
+        console.log('\n--- Fallback to local storage ---');
+        const localDir = path.join(process.cwd(), 'public', 'uploads', className, studentName);
+        if (!fs.existsSync(localDir)) {
+          fs.mkdirSync(localDir, { recursive: true });
+          console.log('Created directory:', localDir);
+        }
+        const localFileName = `${position}_${Date.now()}.jpg`;
+        const localPath = path.join(localDir, localFileName);
+        fs.writeFileSync(localPath, imageBuffer);
+        storageUrl = `/uploads/${className}/${studentName}/${localFileName}`;
         uploadSuccess = true;
-        console.log(`✓ Firebase upload success: ${fileName}`);
-      } catch (fbError) {
-        console.error(`✗ Firebase storage error: ${fbError.message}`);
-        console.error('Firebase error details:', fbError);
+        uploadMethod = 'Local Storage (Firebase unavailable)';
+        console.log(`✓ Local storage success: ${storageUrl}`);
+      } catch (localErr) {
+        console.error(`✗ Local storage error: ${localErr.message}`);
+        console.error('Full error:', localErr);
       }
     }
 
@@ -155,6 +165,7 @@ export default async function handler(req, res) {
     console.log('✓ Upload complete\n');
     
     if (!uploadSuccess) {
+      console.error('❌ UPLOAD FAILED - No storage available');
       return res.status(500).json({ 
         error: 'Upload failed - no storage available',
         message: 'Could not upload to Firebase or local storage'
@@ -164,6 +175,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       success: true,
       message: 'Image upload successful',
+      uploadMethod,
       data: {
         studentId,
         studentName,
