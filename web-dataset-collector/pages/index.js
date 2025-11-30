@@ -32,49 +32,76 @@ export default function Home() {
       }
 
       // Call API to lookup student info
-      const lookupResponse = await fetch('/api/student/lookup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ studentId })
-      });
+      let data = null;
+      try {
+        const lookupResponse = await fetch('/api/student/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ studentId }),
+          signal: AbortSignal.timeout(10000) // 10 second timeout
+        });
 
-      if (!lookupResponse.ok) {
-        const errorData = await lookupResponse.json();
-        const errorMsg = errorData.error || errorData.message || 'Unknown error';
-        const details = errorData.details ? ` - ${errorData.details}` : '';
-        setError(`❌ ${errorMsg}${details}`);
+        if (lookupResponse.ok) {
+          data = await lookupResponse.json();
+          if (data.success) {
+            setStudentName(data.name);
+            setClassName(data.homeroom);
+            setMessage(`✅ Found: ${data.name} | Class: ${data.homeroom}`);
+          }
+        } else {
+          console.warn('Lookup returned error status, allowing manual entry');
+        }
+      } catch (lookupErr) {
+        console.warn('Student lookup failed (OK for local testing):', lookupErr.message);
+        setMessage('⚠️ Binus API unreachable - proceeding with manual entry');
+        // Continue with manual entry
+        data = null;
+      }
+
+      // If lookup failed or API unreachable, allow manual entry
+      if (!data || !data.success) {
+        // For local testing, just use the student ID as temporary name
+        if (!studentName) {
+          setStudentName(`Student ${studentId}`);
+          setClassName('Test Class');
+          setMessage(`✅ Manual entry mode: Student ID ${studentId}`);
+        } else {
+          // User already manually entered name and class
+          setMessage(`✅ Ready to capture images! Welcome, ${studentName}`);
+        }
+        setStep('capture');
+        setImages([]);
         setLoading(false);
         return;
       }
 
-      const data = await lookupResponse.json();
-      
-      if (data.success) {
-        // Auto-populate from API response
-        setStudentName(data.name);
-        setClassName(data.homeroom);
-        setMessage(`✅ Found: ${data.name} | Class: ${data.homeroom}`);
+      // Save metadata to Firebase if lookup succeeded
+      if (data && data.success) {
+        try {
+          const metaResponse = await fetch('/api/student/metadata', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              studentId: data.studentId || studentId,
+              studentName: data.name,
+              className: data.homeroom,
+              gradeCode: data.gradeCode,
+              gradeName: data.gradeName
+            })
+          });
 
-        // Save metadata to Firebase
-        const metaResponse = await fetch('/api/student/metadata', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            studentId: data.studentId,
-            studentName: data.name,
-            className: data.homeroom,
-            gradeCode: data.gradeCode,
-            gradeName: data.gradeName
-          })
-        });
-
-        if (metaResponse.ok) {
+          if (metaResponse.ok) {
+            setMessage(`✅ Ready to capture images! Welcome, ${data.name}`);
+            setStep('capture');
+            setImages([]);
+          }
+        } catch (metaErr) {
+          console.warn('Metadata save failed:', metaErr.message);
+          // Still proceed to capture even if metadata save fails
           setMessage(`✅ Ready to capture images! Welcome, ${data.name}`);
           setStep('capture');
           setImages([]);
         }
-      } else {
-        setError('Failed to retrieve student information');
       }
 
     } catch (err) {
@@ -215,11 +242,13 @@ function InfoStep({
   setError,
   onContinueToCapture
 }) {
+  const [useManualEntry, setUseManualEntry] = useState(false);
+
   return (
     <div className={styles.step}>
       <div className={styles.card}>
         <h2>📝 Student Information</h2>
-        <p className={styles.subtitle}>Enter your Binusian ID to auto-load your details</p>
+        <p className={styles.subtitle}>Enter your details to begin</p>
 
         {!studentName ? (
           <form onSubmit={(e) => {
@@ -238,32 +267,96 @@ function InfoStep({
                 required
                 disabled={loading}
               />
-              <small>Your unique Binus student ID to lookup your information</small>
+              <small>Your unique Binus student ID</small>
             </div>
 
             <button type="submit" disabled={loading || !studentId} className={styles.btn_primary}>
-              {loading ? '⏳ Looking up...' : '🔍 Lookup Student Info'}
+              {loading ? '⏳ Checking...' : '🔍 Lookup Student Info'}
             </button>
+
+            {!useManualEntry && (
+              <div style={{ marginTop: '20px', textAlign: 'center' }}>
+                <p style={{ color: '#999', fontSize: '14px', marginBottom: '10px' }}>
+                  Binus API not available? Try manual entry instead
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setUseManualEntry(true)}
+                  className={styles.btn_secondary}
+                  style={{ width: '100%' }}
+                >
+                  📝 Enter Details Manually
+                </button>
+              </div>
+            )}
+
+            {useManualEntry && (
+              <>
+                <div className={styles.form_group} style={{ marginTop: '20px' }}>
+                  <label>Full Name (Manual Entry)</label>
+                  <input
+                    type="text"
+                    value={studentName}
+                    onChange={(e) => setStudentName(e.target.value)}
+                    placeholder="Enter your full name"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className={styles.form_group}>
+                  <label>Class / Homeroom (Manual Entry)</label>
+                  <input
+                    type="text"
+                    value={className}
+                    onChange={(e) => setClassName(e.target.value)}
+                    placeholder="Enter your class"
+                    disabled={loading}
+                  />
+                </div>
+
+                <div className={styles.button_group}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUseManualEntry(false);
+                      setStudentName('');
+                      setClassName('');
+                    }}
+                    className={styles.btn_secondary}
+                  >
+                    ← Back to API Lookup
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onContinueToCapture()}
+                    disabled={!studentName || !className}
+                    className={styles.btn_primary}
+                  >
+                    ✓ Continue to Capture
+                  </button>
+                </div>
+              </>
+            )}
           </form>
         ) : (
           <>
             <div className={styles.form_group}>
-              <label>Full Name (Auto-filled)</label>
+              <label>Full Name</label>
               <input
                 type="text"
                 value={studentName}
-                disabled
+                onChange={(e) => setStudentName(e.target.value)}
                 style={{ backgroundColor: '#f0f0f0' }}
               />
-              <small>Automatically loaded from system</small>
+              <small>Student full name</small>
             </div>
 
             <div className={styles.form_group}>
-              <label>Class / Homeroom (Auto-filled)</label>
+              <label>Class / Homeroom</label>
               <input
                 type="text"
                 value={className}
-                disabled
+                onChange={(e) => setClassName(e.target.value)}
                 style={{ backgroundColor: '#f0f0f0' }}
               />
               <small>Your homeroom class</small>
@@ -275,6 +368,7 @@ function InfoStep({
                   setStudentId('');
                   setStudentName('');
                   setClassName('');
+                  setUseManualEntry(false);
                 }}
                 className={styles.btn_secondary}
               >

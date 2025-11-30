@@ -200,27 +200,38 @@ function CaptureStepSimple({
     setLocalMessage(`⏳ Processing image (${position})...`);
 
     try {
+      console.log('BACKEND_URL:', BACKEND_URL);
+      console.log('Image size:', imageBase64.length, 'bytes');
+      console.log('Student data:', { studentId, studentName, className, position });
+
       // Call backend API with timeout
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout for large images
 
+      const payload = {
+        image: imageBase64,
+        studentId,
+        studentName,
+        className,
+        position
+      };
+
+      console.log('Sending to backend...');
+      
       const response = await fetch(`${BACKEND_URL}/api/process-image`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          image: imageBase64,
-          studentId,
-          studentName,
-          className,
-          position
-        }),
+        body: JSON.stringify(payload),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
+      console.log('Response status:', response.status, response.statusText);
+
       if (!response.ok) {
         const text = await response.text();
+        console.error('Backend error response:', text);
         let error = 'Backend processing failed';
         let suggestion = '';
         try {
@@ -234,6 +245,7 @@ function CaptureStepSimple({
       }
 
       const processData = await response.json();
+      console.log('Processing response:', processData);
 
       if (!processData.success) {
         throw new Error(processData.error || 'Processing failed');
@@ -256,11 +268,16 @@ function CaptureStepSimple({
       return true;
     } catch (err) {
       console.error('Processing error:', err);
+      console.error('Error type:', err.name);
+      console.error('Error message:', err.message);
+      console.error('Error stack:', err.stack);
       
       // Better error messages
       let errorMsg = err.message;
       if (err.name === 'AbortError') {
-        errorMsg = 'Processing timeout (15s) - try better lighting or move face closer';
+        errorMsg = 'Processing timeout (30s) - backend might be slow or unresponsive. Check console.';
+      } else if (err.name === 'TypeError') {
+        errorMsg = 'Network error - backend might be down. Check http://' + new URL(BACKEND_URL).host;
       }
       
       setLocalError(`❌ ${errorMsg}`);
