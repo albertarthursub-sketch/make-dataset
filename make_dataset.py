@@ -1,8 +1,8 @@
 """
-Face Dataset Creation Tool - Optimized Edition (Local Only)
------------------------------------------------------------
+Face Dataset Creation Tool - Optimized Edition with Firebase Integration
+------------------------------------------------------------------------
 This tool captures face images for the facial recognition system and
-stores them locally under face_dataset/<BinusianID>/.
+stores them both locally AND to Firebase Storage.
 Features intelligent face detection and optimized image processing.
 """
 
@@ -13,6 +13,77 @@ import shutil
 import json
 import re
 import numpy as np
+import requests
+import base64
+import io
+
+def upload_face_image_to_firebase(image_data, student_id, student_name, class_name, position_num):
+    """
+    Upload a cropped and enhanced face image to Firebase Storage via the web API.
+    
+    Args:
+        image_data: numpy array of image data
+        student_id: Binusian ID
+        student_name: Full name of student
+        class_name: Homeroom/class name
+        position_num: Image position/number (e.g., 0, 1, 2)
+    
+    Returns:
+        dict: Response with status and details
+    """
+    try:
+        # Check if we have the web API available
+        api_url = os.getenv("UPLOAD_API_URL", "http://localhost:3000/api/face/upload")
+        
+        # Convert image to JPEG bytes
+        if image_data is None:
+            print(f"⚠️ No image data to upload for {student_name} position {position_num}")
+            return {"success": False, "error": "No image data"}
+        
+        success, jpeg_data = cv2.imencode('.jpg', image_data, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if not success:
+            print(f"❌ Failed to encode image for {student_name}")
+            return {"success": False, "error": "Image encoding failed"}
+        
+        jpeg_bytes = jpeg_data.tobytes()
+        
+        # Prepare multipart form data
+        files = {
+            'image': ('face.jpg', io.BytesIO(jpeg_bytes), 'image/jpeg')
+        }
+        data = {
+            'studentId': str(student_id),
+            'studentName': str(student_name),
+            'className': str(class_name),
+            'position': str(position_num)
+        }
+        
+        print(f"  📤 Uploading to Firebase: {api_url}")
+        print(f"     Student: {student_name} ({student_id})")
+        print(f"     Class: {class_name}, Position: {position_num}")
+        
+        # Send request to web API endpoint
+        response = requests.post(api_url, files=files, data=data, timeout=30)
+        
+        if response.status_code == 200:
+            result = response.json()
+            if result.get('success'):
+                print(f"  ✅ Firebase upload successful: {result.get('data', {}).get('storageUrl', 'N/A')}")
+                return {"success": True, "url": result.get('data', {}).get('storageUrl')}
+            else:
+                print(f"  ❌ Upload API error: {result.get('error', 'Unknown error')}")
+                return {"success": False, "error": result.get('error', 'Unknown error')}
+        else:
+            print(f"  ❌ Upload failed with status {response.status_code}: {response.text[:200]}")
+            return {"success": False, "error": f"HTTP {response.status_code}"}
+            
+    except requests.exceptions.ConnectionError:
+        print(f"  ⚠️ Could not connect to upload API at {api_url}")
+        print(f"     Make sure the web server is running (npm run dev or similar)")
+        return {"success": False, "error": "Could not connect to upload API"}
+    except Exception as e:
+        print(f"  ❌ Firebase upload error: {e}")
+        return {"success": False, "error": str(e)}
 
 def main():
     dataset_path = "face_dataset"
@@ -253,6 +324,23 @@ def main():
                         
                         print(f"✅ Saved high-quality image {count+1}/{images_to_capture} -> {img_path}")
                         print(f"   Quality score: {best_quality:.1f}, Position: {position_key}")
+                        
+                        # Upload to Firebase
+                        print(f"📤 Uploading to Firebase...")
+                        upload_result = upload_face_image_to_firebase(
+                            face_final, 
+                            studentid, 
+                            student_name, 
+                            safe_class, 
+                            count
+                        )
+                        
+                        if upload_result.get("success"):
+                            print(f"   ✅ Firebase: {upload_result.get('url', 'Success')}")
+                        else:
+                            print(f"   ⚠️ Firebase failed: {upload_result.get('error', 'Unknown error')}")
+                            print(f"   ℹ️ Image saved locally at {img_path}")
+                        
                         count += 1
                     else:
                         print("❌ No suitable face detected during capture!")
@@ -302,10 +390,13 @@ def main():
     
     # Instructions for next steps
     print("\n📋 Next steps:")
-    print("1. Run enroll_local.py to rebuild local encodings (encodings.pickle).")
-    print("2. Run the main facial recognition system.")
-    print("3. The system will automatically detect and recognize the newly added face.")
-    print("3. If recognition doesn't work well, try adding more images with different poses and lighting")
+    print("1. Check Firebase Storage to verify uploads completed successfully")
+    print("2. Run enroll_local.py to rebuild local encodings (encodings.pickle).")
+    print("3. Run the main facial recognition system.")
+    print("4. The system will automatically detect and recognize the newly added face.")
+    print("5. If recognition doesn't work well, try adding more images with different poses and lighting")
+    print("\n💡 NOTE: Images are being uploaded to Firebase Storage in real-time.")
+    print("   If Firebase upload fails, images are still saved locally and can be synced later.")
 
 if __name__ == "__main__":
     main()
