@@ -1,27 +1,45 @@
+# Environment variables - NEVER COMMIT
 .env
 .env.local
+.env.*.local
+
+# Firebase credentials - NEVER COMMIT
+firebase-adminsdk*.json
+facial-attendance-binus-firebase-adminsdk.json
+
+# Python
 venv/
-node_modules/
-face_dataset/
-encodings.pickle
-*.log
-.DS_Store
-.next/
-out/
-build/
-dist/
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 .coverage
 htmlcov/
-.idea/
+
+# Node.js
+node_modules/
+.next/
+out/
+build/
+dist/
+.vercel/
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+
+# OS
+.DS_Store
 .vscode/
+.idea/
+
+# Editors
 *.swp
 *.swo
 *~
-.env.example.local
-firebase-adminsdk*.json
+
+# Project files
+face_dataset/
+encodings.pickle
 test_*.jpg
-.vercel/
