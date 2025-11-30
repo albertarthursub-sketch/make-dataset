@@ -9,6 +9,9 @@ export default async function handler(req, res) {
     // Initialize Firebase
     initializeFirebase();
 
+    // Destructure request body
+    const { studentId, name, homeroom, gradeCode, gradeName } = req.body;
+
     if (!studentId || !name || !homeroom) {
       return res.status(400).json({ 
         error: 'Missing required fields: studentId, name, homeroom' 

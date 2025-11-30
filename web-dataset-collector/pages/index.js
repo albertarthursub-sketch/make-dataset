@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/index.module.css';
+import CaptureStepSimple from '../components/CaptureStepSimple';
 
 // Note: useState is already imported above
 
@@ -171,7 +172,7 @@ export default function Home() {
       )}
 
       {step === 'capture' && (
-        <CaptureStep
+        <CaptureStepSimple
           studentId={studentId}
           studentName={studentName}
           className={className}
@@ -312,14 +313,127 @@ function CaptureStep({
 }) {
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
+  const canvasOverlayRef = useRef(null);
   const [streaming, setStreaming] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [faceDetected, setFaceDetected] = useState(false);
+  const [detector, setDetector] = useState(null);
   const TARGET_IMAGES = 3;
+  const animationFrameRef = useRef(null);
+
+  // Initialize face detection model
+  useEffect(() => {
+    const initializeFaceDetection = async () => {
+      try {
+        // Face detection is now handled by backend
+        console.log('✓ Backend handles face detection');
+      } catch (err) {
+        console.error('Face detection initialization error:', err);
+        setError('⚠️ Face detection not available, camera will still work');
+      }
+    };
+    
+    initializeFaceDetection();
+  }, []);
+
+  // Draw bounding boxes on canvas overlay
+  const drawBoundingBox = async () => {
+    if (!detector || !videoRef.current || !canvasOverlayRef.current) return;
+
+    try {
+      const video = videoRef.current;
+      const canvas = canvasOverlayRef.current;
+      
+      // Set canvas size to match video
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      
+      const ctx = canvas.getContext('2d');
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Run face detection
+      const predictions = await detector.estimateFaces(video, false);
+      
+      if (predictions && predictions.length > 0) {
+        setFaceDetected(true);
+        
+        // Draw bounding boxes for each detected face
+        predictions.forEach((prediction, idx) => {
+          const start = prediction.start;
+          const end = prediction.end;
+          
+          const width = end[0] - start[0];
+          const height = end[1] - start[1];
+          
+          // Draw rectangle
+          ctx.strokeStyle = '#00ff88';
+          ctx.lineWidth = 3;
+          ctx.shadowColor = 'rgba(0, 255, 136, 0.5)';
+          ctx.shadowBlur = 10;
+          ctx.strokeRect(start[0], start[1], width, height);
+          
+          // Draw corner markers
+          const cornerSize = 20;
+          ctx.fillStyle = '#00ff88';
+          
+          // Top-left
+          ctx.fillRect(start[0], start[1], cornerSize, 3);
+          ctx.fillRect(start[0], start[1], 3, cornerSize);
+          
+          // Top-right
+          ctx.fillRect(end[0] - cornerSize, start[1], cornerSize, 3);
+          ctx.fillRect(end[0] - 3, start[1], 3, cornerSize);
+          
+          // Bottom-left
+          ctx.fillRect(start[0], end[1] - 3, cornerSize, 3);
+          ctx.fillRect(start[0], end[1] - cornerSize, 3, cornerSize);
+          
+          // Bottom-right
+          ctx.fillRect(end[0] - cornerSize, end[1] - 3, cornerSize, 3);
+          ctx.fillRect(end[0] - 3, end[1] - cornerSize, 3, cornerSize);
+          
+          // Draw face confidence label
+          ctx.fillStyle = '#00ff88';
+          ctx.font = 'bold 14px monospace';
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+          ctx.shadowBlur = 4;
+          ctx.fillText('👤 Face Detected', start[0] + 10, start[1] - 10);
+        });
+      } else {
+        setFaceDetected(false);
+      }
+      
+      // Continue animation loop
+      animationFrameRef.current = requestAnimationFrame(drawBoundingBox);
+    } catch (err) {
+      console.error('Bounding box drawing error:', err);
+    }
+  };
 
   useEffect(() => {
     startCamera();
-    return () => stopCamera();
+    return () => {
+      stopCamera();
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
   }, []);
+
+  // Start drawing bounding boxes when video is ready
+  useEffect(() => {
+    if (streaming && detector) {
+      drawBoundingBox();
+    }
+    
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [streaming, detector]);
 
   const startCamera = async () => {
     try {
@@ -450,6 +564,7 @@ function CaptureStep({
     try {
       let uploaded = 0;
       let failed = 0;
+      const failedImages = [];
       
       for (let i = 0; i < images.length; i++) {
         try {
@@ -469,33 +584,50 @@ function CaptureStep({
           const blob = new Blob([bytes], { type: 'image/jpeg' });
           formData.append('image', blob, `${studentName}_${i + 1}.jpg`);
 
+          console.log(`Uploading image ${i + 1}/${images.length}...`);
+          
           const uploadResponse = await fetch('/api/face/upload', {
             method: 'POST',
             body: formData
           });
 
-          if (uploadResponse.ok) {
+          const responseData = await uploadResponse.json();
+          
+          if (uploadResponse.ok && responseData.success) {
             uploaded++;
-            setMessage(`⏳ Uploading... ${uploaded}/${images.length}`);
+            setMessage(`⏳ Uploading... ${uploaded}/${images.length} successful`);
+            console.log(`✓ Image ${i + 1} uploaded successfully`);
           } else {
             failed++;
-            const errorData = await uploadResponse.json();
-            console.error(`Upload failed for image ${i + 1}:`, errorData);
+            failedImages.push(`Image ${i + 1}: ${responseData.error || responseData.message || 'Unknown error'}`);
+            console.error(`Upload failed for image ${i + 1}:`, responseData);
           }
         } catch (imgErr) {
           failed++;
+          failedImages.push(`Image ${i + 1}: ${imgErr.message}`);
           console.error(`Error uploading image ${i + 1}:`, imgErr);
         }
       }
 
       if (uploaded > 0) {
         setMessage(`✅ Successfully uploaded ${uploaded}/${images.length} images${failed > 0 ? ` (${failed} failed)` : ''}!`);
-        setStep('upload');
+        
+        if (failed > 0) {
+          console.warn('Upload failures:', failedImages);
+          setTimeout(() => {
+            setMessage(failedImages.join('\n'));
+          }, 2000);
+        }
+        
+        setTimeout(() => {
+          setStep('upload');
+        }, 2000);
       } else {
-        setError('Failed to upload any images. Please try again.');
+        setError(`❌ Upload failed for all images:\n${failedImages.join('\n')}`);
       }
     } catch (err) {
       setError(`Upload failed: ${err.message}`);
+      console.error('Upload error:', err);
     } finally {
       setUploading(false);
     }
@@ -508,15 +640,43 @@ function CaptureStep({
         <p className={styles.subtitle}>{imageCount}/{TARGET_IMAGES} images captured</p>
 
         {/* Camera Frame */}
-        <div style={{ width: '100%', marginBottom: '20px' }}>
+        <div style={{ width: '100%', marginBottom: '20px', position: 'relative', display: 'inline-block' }}>
           <video
             ref={videoRef}
             className={styles.video}
             playsInline
             autoPlay
             muted
-            style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+            style={{ width: '100%', height: 'auto', borderRadius: '8px', display: 'block' }}
           />
+          {/* Canvas overlay for bounding boxes */}
+          <canvas 
+            ref={canvasOverlayRef}
+            style={{ 
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              borderRadius: '8px',
+              cursor: 'crosshair'
+            }}
+          />
+          {/* Face detection status indicator */}
+          <div style={{
+            position: 'absolute',
+            bottom: '10px',
+            left: '10px',
+            padding: '8px 12px',
+            background: faceDetected ? 'rgba(0, 255, 136, 0.9)' : 'rgba(255, 100, 100, 0.9)',
+            color: '#000',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            zIndex: 10
+          }}>
+            {faceDetected ? '✓ Face Detected' : '✗ No Face'}
+          </div>
           <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
 
