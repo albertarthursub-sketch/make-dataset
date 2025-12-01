@@ -1,4 +1,5 @@
-import { getFirestoreDB, initializeFirebase } from '../../../lib/firebase-admin';
+// Note: Metadata saving is handled by the Flask backend on Railway
+// This endpoint is kept for compatibility but returns a success response
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -6,10 +7,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Initialize Firebase
-    initializeFirebase();
-
-    // Destructure request body
     const { studentId, name, homeroom, gradeCode, gradeName } = req.body;
 
     if (!studentId || !name || !homeroom) {
@@ -29,25 +26,18 @@ export default async function handler(req, res) {
       images: []
     };
 
-    // Save to Firestore if available
-    try {
-      const db = getFirestoreDB();
-      await db.collection('students').doc(studentId).set(metadata, { merge: true });
-      console.log('✓ Metadata saved to Firestore:', studentId);
-    } catch (fbError) {
-      console.warn('Firestore save failed (this is OK for local testing):', fbError.message);
-    }
-
+    // Metadata is saved by the backend (Railway) during image upload
+    // This endpoint just acknowledges the request
     return res.status(200).json({
       success: true,
-      message: 'Metadata saved',
+      message: 'Metadata received (saved by backend)',
       metadata: metadata
     });
 
   } catch (error) {
-    console.error('Error saving metadata:', error);
+    console.error('Error processing metadata:', error);
     return res.status(500).json({ 
-      error: 'Failed to save metadata',
+      error: 'Failed to process metadata',
       message: error.message 
     });
   }
