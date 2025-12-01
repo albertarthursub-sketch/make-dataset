@@ -110,17 +110,28 @@ class FaceProcessor:
         """Detect faces in image using Haar Cascade with optimized parameters"""
         gray = cv2.cvtColor(image_array, cv2.COLOR_BGR2GRAY)
         
-        # Optimize detection parameters for better sensitivity
-        # scaleFactor: smaller = slower but more accurate (1.1-1.2)
-        # minNeighbors: smaller = more detections but more false positives (3-5)
-        # minSize: minimum face size to detect
+        # Apply histogram equalization to improve detection in poor lighting
+        gray_eq = cv2.equalizeHist(gray)
+        
+        # Try detection with equalized image first
         faces = self.cascade.detectMultiScale(
-            gray, 
-            scaleFactor=1.1,      # More sensitive than 1.3
-            minNeighbors=4,        # More sensitive than 5
+            gray_eq, 
+            scaleFactor=1.1,      # More sensitive
+            minNeighbors=4,        # More sensitive
             minSize=(30, 30),      # Allow smaller faces
             maxSize=(400, 400)     # Reasonable max
         )
+        
+        # If no faces found, try original gray image with even more sensitivity
+        if len(faces) == 0:
+            faces = self.cascade.detectMultiScale(
+                gray,
+                scaleFactor=1.05,    # Even more sensitive
+                minNeighbors=3,      # Less strict
+                minSize=(20, 20),    # Allow very small faces
+                maxSize=(500, 500)   # Larger max
+            )
+        
         return faces
     
     def crop_face(self, image_array, face_rect):
@@ -307,19 +318,30 @@ def process_image():
         faces = face_processor.detect_faces(image)
         logger.info(f'Faces detected: {len(faces)}')
         
-        # Fallback: if no faces detected, try with different parameters
+        # Fallback: if no faces detected, try with histogram equalization
         if len(faces) == 0:
-            logger.info('No faces detected with default params, trying alternative detection...')
+            logger.info('No faces detected, applying histogram equalization...')
             gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-            # More aggressive detection
+            gray_eq = cv2.equalizeHist(gray)
+            image_eq = cv2.cvtColor(gray_eq, cv2.COLOR_GRAY2BGR)
+            
+            faces = face_processor.detect_faces(image_eq)
+            if len(faces) > 0:
+                image = image_eq  # Use equalized image for subsequent processing
+                logger.info(f'Faces detected after equalization: {len(faces)}')
+        
+        # Final fallback: try more aggressive detection parameters directly
+        if len(faces) == 0:
+            logger.info('Still no faces, trying aggressive detection...')
+            gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
             faces = face_processor.cascade.detectMultiScale(
                 gray,
-                scaleFactor=1.05,    # Even more sensitive
-                minNeighbors=3,      # Less strict
-                minSize=(20, 20),    # Allow very small faces
-                maxSize=(500, 500)
+                scaleFactor=1.05,    # Maximum sensitivity
+                minNeighbors=2,      # Minimum threshold
+                minSize=(15, 15),    # Very small faces
+                maxSize=(700, 700)   # Large faces
             )
-            logger.info(f'Alternative detection found: {len(faces)} faces')
+            logger.info(f'Aggressive detection result: {len(faces)} faces')
         
         if len(faces) == 0:
             return jsonify({
@@ -351,8 +373,8 @@ def process_image():
         _, viz_encoded = cv2.imencode('.jpg', visualization)
         viz_base64 = base64.b64encode(viz_encoded).decode()
         
-        # Upload to Firebase
-        firebase_path = upload_to_firebase(cropped_encoded.tobytes(), student_name, student_id, position)
+        # DON'T upload to Firebase here - only process and return
+        # Upload happens when user clicks "Upload" button
         
         logger.info(f'✓ Image processing complete for {student_name}')
         
@@ -361,7 +383,6 @@ def process_image():
             'faces_detected': len(faces),
             'processed_image': f'data:image/jpeg;base64,{cropped_base64}',
             'visualization': f'data:image/jpeg;base64,{viz_base64}',
-            'firebase_path': firebase_path,
             'message': f'✓ Detected and processed {len(faces)} face(s). Main subject cropped and enhanced.'
         }), 200
         
@@ -458,6 +479,151 @@ def batch_process():
         return jsonify({
             'success': False,
             'error': str(e)
+        }), 500
+
+
+@app.route('/api/upload-image', methods=['POST'])
+def upload_image():
+    """
+    Upload a single image to Firebase Storage
+    
+    Request:
+    {
+        "image": "base64_encoded_image",
+        "studentId": "123456",
+        "studentName": "John Doe",
+        "className": "10A",
+        "position": "front"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "firebase_path": "gs://bucket/...",
+        "message": "Image uploaded successfully"
+    }
+    """
+    try:
+        data = request.json
+        
+        image_base64 = data.get('image')
+        student_id = data.get('studentId')
+        student_name = data.get('studentName')
+        position = data.get('position', 'unknown')
+        
+        if not all([image_base64, student_id, student_name]):
+            return jsonify({
+                'success': False,
+                'error': 'Missing required fields'
+            }), 400
+        
+        # Decode base64 image
+        logger.info(f'Uploading image for {student_name} (ID: {student_id}, Pos: {position})')
+        
+        # Handle data URL format
+        if ',' in image_base64:
+            image_base64 = image_base64.split(',')[1]
+        
+        image_data = base64.b64decode(image_base64)
+        
+        # Upload to Firebase
+        firebase_path = upload_to_firebase(image_data, student_name, student_id, position)
+        
+        if not firebase_path:
+            return jsonify({
+                'success': False,
+                'error': 'Failed to upload image to Firebase'
+            }), 500
+        
+        logger.info(f'✓ Successfully uploaded: {firebase_path}')
+        
+        return jsonify({
+            'success': True,
+            'firebase_path': firebase_path,
+            'message': f'Image uploaded successfully to {firebase_path}'
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Upload image error: {str(e)}', exc_info=True)
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
+
+@app.route('/api/detect-faces', methods=['POST'])
+def detect_faces():
+    """
+    Real-time face detection endpoint
+    Returns face coordinates without processing/cropping
+    Used for live camera overlay
+    
+    Request:
+    {
+        "image": "base64_encoded_image"
+    }
+    
+    Response:
+    {
+        "success": true,
+        "faces_detected": 1,
+        "faces": [
+            {"x": 100, "y": 150, "w": 200, "h": 250}
+        ]
+    }
+    """
+    try:
+        data = request.json
+        image_base64 = data.get('image')
+        
+        if not image_base64:
+            return jsonify({
+                'success': False,
+                'faces': [],
+                'faces_detected': 0
+            }), 400
+        
+        # Decode base64 image
+        image_data = base64.b64decode(image_base64.split(',')[1] if ',' in image_base64 else image_base64)
+        nparr = np.frombuffer(image_data, np.uint8)
+        image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+        
+        if image is None:
+            return jsonify({
+                'success': False,
+                'faces': [],
+                'faces_detected': 0
+            }), 400
+        
+        # Optimize: resize if too large
+        height, width = image.shape[:2]
+        if max(height, width) > 720:
+            scale = 720 / max(height, width)
+            image = cv2.resize(image, (int(width * scale), int(height * scale)), interpolation=cv2.INTER_LINEAR)
+        
+        # Detect faces
+        faces = face_processor.detect_faces(image)
+        
+        # Convert to coordinates format
+        face_coords = [
+            {'x': int(x), 'y': int(y), 'w': int(w), 'h': int(h)}
+            for x, y, w, h in faces
+        ]
+        
+        logger.debug(f'Detected {len(faces)} faces for real-time display')
+        
+        return jsonify({
+            'success': True,
+            'faces_detected': len(faces),
+            'faces': face_coords
+        }), 200
+        
+    except Exception as e:
+        logger.error(f'Face detection error: {str(e)}')
+        return jsonify({
+            'success': False,
+            'faces': [],
+            'faces_detected': 0
         }), 500
 
 

@@ -1,38 +1,194 @@
-Instructions:
-1. Make dataset
-2. Enroll local
-3. Collect metrics (+ encodings)
-4. RUn main file
+# BINUS Facial Attendance System
 
-Model assets (place beside the scripts or set env vars):
-- `shape_predictor_68_face_landmarks.dat` (`DLIB_LANDMARK_MODEL`)
-- `dlib_face_recognition_resnet_model_v1.dat` (`DLIB_FACE_REC_MODEL`)
+A clean, simple facial attendance system for BINUS students. Students enter their Binusian ID, retrieve their data from the BINUS API, and capture face images using OpenCV with automatic Firebase storage.
 
-The enrollment step now generates both 136-D landmark embeddings and 128-D CNN embeddings so the runtime can fuse them for better accuracy. If the CNN weights are missing, the pipeline gracefully falls back to landmark-only mode.
+## System Architecture
 
----
+### Frontend (Next.js)
+- **Enrollment Page**: Enter Binusian ID → Call BINUS API → Display student info
+- **Capture Page**: Live camera → OpenCV face detection → Capture 3 angles → Upload to Firebase
 
-API lookup (Part C2) — ID → Name/Class
+### Backend (Flask + OpenCV)
+- Face detection using Haar Cascade
+- Face cropping and enhancement with CLAHE
+- Firebase Cloud Storage upload
+- Firestore metadata storage
 
-You can look up a student’s name and class by ID using the API.
+## Key Features
 
-Option A: Direct C2 (ID-only)
-- Set environment variables per your API doc:
-	- BSS_C2_URL: Full endpoint URL for the ID lookup
-	- BSS_C2_BODY_KEY: Body key for the student ID (default: IdStudent)
-	- BSS_C2_BODY_MODE: 'single' (default) to send {IdStudent: "..."} or 'list' to send {IdStudent: ["..."]}
-- Then run:
+✓ **API-Only Workflow** - No manual fallback
+✓ **Live Face Detection** - OpenCV bounded box visualization
+✓ **Multi-angle Capture** - Front, Left, Right positions
+✓ **Flexible Image Management** - Delete/Retake any image
+✓ **Beautiful UI** - Images lineup on left side during capture
+✓ **Auto Upload** - Firebase storage with confirmation
+✓ **Student Data** - Retrieved directly from BINUS API
 
-	python3 main.py --lookup-id <STUDENT_ID>
+## Setup
 
-This prints the Name and Class (if class/homeroom field is present in the response).
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- npm/yarn
+- Camera access
+- BINUS API credentials
+- Firebase credentials
 
-Option B: Class-based lookup (requires grade/homeroom)
+### Backend Setup
 
-	python3 main.py --lookup-id <STUDENT_ID> --grade <GRADE> --homeroom <HOMEROOM>
+```bash
+cd make-dataset-1
+pip install -r requirements.txt
+```
 
-Notes
-- Token retrieval is automatic.
-- Detection pipeline is HOG-only with dlib 68-landmarks.
-- Recognition uses hybrid CNN+landmark embeddings by default (`CONFIG["embedding_mode"]`). Set it to `"landmarks"` or `"cnn"` if you want to force one branch. Adjust fusion weights via `CONFIG["embedding_component_weights"]`.
-- Ensemble distance weights can be left as "default" or customized in CONFIG.
+Create `.env.local` with:
+```
+FIREBASE_PROJECT_ID=...
+FIREBASE_PRIVATE_KEY=...
+FIREBASE_CLIENT_EMAIL=...
+FIREBASE_CLIENT_ID=...
+FIREBASE_STORAGE_BUCKET=...
+```
+
+Run backend:
+```bash
+python facial_recognition_backend.py
+```
+
+Backend runs on: `http://localhost:5000`
+
+### Frontend Setup
+
+```bash
+cd web-dataset-collector
+npm install
+```
+
+Create `.env.local` with:
+```
+NEXT_PUBLIC_BACKEND_URL=http://localhost:5000
+NEXT_PUBLIC_BINUS_API_URL=https://api.binus.ac.id
+NEXT_PUBLIC_BINUS_API_KEY=...
+```
+
+Run frontend:
+```bash
+npm run dev
+```
+
+Frontend runs on: `http://localhost:3000`
+
+## Usage
+
+1. **Open browser**: http://localhost:3000
+2. **Enter Binusian ID**: Input student ID number
+3. **Retrieve Data**: Click "Retrieve Student Data" button
+4. **View Student Info**: Name and class will be displayed
+5. **Start Capture**: Click "Proceed to Capture"
+6. **Capture Faces**: 
+   - Allow camera access
+   - Capture front face image
+   - Capture left side image
+   - Capture right side image
+7. **Delete/Retake**: Click retake or delete on any image as needed
+8. **Upload**: Click upload button
+9. **Confirmation**: See success message
+
+All images are automatically uploaded to Firebase during capture. Metadata is saved to Firestore.
+
+## API Endpoints
+
+### Student Lookup
+```
+POST /api/student/lookup
+{
+  "studentId": "2470006173"
+}
+```
+
+### Process Image
+```
+POST /api/process-image
+{
+  "image": "base64_encoded",
+  "studentId": "2470006173",
+  "studentName": "John Doe",
+  "className": "10A",
+  "position": "front"  // or "left", "right"
+}
+```
+
+### Upload Images
+```
+POST /api/upload-images
+{
+  "studentId": "2470006173",
+  "studentName": "John Doe",
+  "className": "10A",
+  "images": {
+    "front": "base64_encoded",
+    "left": "base64_encoded",
+    "right": "base64_encoded"
+  }
+}
+```
+
+## File Structure
+
+```
+make-dataset-1/
+├── facial_recognition_backend.py    # Flask + OpenCV backend
+├── .env.local                        # Firebase credentials
+├── facial-attendance-binus-firebase-adminsdk.json
+│
+└── web-dataset-collector/
+    ├── pages/
+    │   ├── index.js                 # Main entry point
+    │   ├── _app.js
+    │   ├── _document.js
+    │   └── api/
+    │       ├── student/
+    │       │   └── lookup.js        # BINUS API integration
+    │       ├── process-image.js     # Image processing
+    │       └── upload-images.js     # Upload confirmation
+    ├── components/
+    │   ├── EnrollmentPage.js        # Student enrollment
+    │   └── CapturePage.js           # Face capture
+    ├── styles/
+    │   ├── globals.css              # Global styles
+    │   ├── index.module.css
+    │   ├── enrollment.module.css
+    │   └── capture.module.css
+    ├── .env.local
+    ├── .env.example
+    ├── package.json
+    └── next.config.js
+```
+
+## Development Notes
+
+### Face Detection Parameters
+- **scaleFactor**: 1.1 (more sensitive than default 1.3)
+- **minNeighbors**: 4 (allows more detections)
+- **minSize**: 30x30 (detects smaller faces)
+
+### Image Processing
+- Resize to max 720p for faster processing
+- Crop with 20% horizontal padding, 30% top padding
+- CLAHE histogram equalization for contrast
+- JPEG quality 85 for balance between quality and size
+
+### Firebase Storage
+- Path: `face_dataset/{studentName}/{studentId}_{position}_{timestamp}.jpg`
+- Metadata stored in Firestore: `students/{studentId}/images/{docId}`
+
+## Common Issues
+
+**Camera not working**: Grant camera permissions in browser
+**Face not detected**: Ensure good lighting and face is clearly visible
+**API timeout**: Check BINUS API connection and availability
+**Firebase error**: Verify .env.local credentials and Firebase project settings
+
+## License
+
+Internal use only - BINUS School
